@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
+<title>설문 결과</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+
+  :root {
+    --surface: #fcfcfb;
+    --surface-2: #f1f1ef;
+    --text: #0b0b0b;
+    --text-2: #52514e;
+    --line: #deded9;
+    --series: #2a78d6;
+    --accent: #1a4fa0;
+    --on-accent: #ffffff;
+    --warn-bg: #fff3d1;
+    --warn-text: #3d2600;
+    --focus: #c2410c;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --surface: #1a1a19;
+      --surface-2: #242423;
+      --text: #ffffff;
+      --text-2: #c3c2b7;
+      --line: #3a3a38;
+      --series: #3987e5;
+      --accent: #8db4ff;
+      --on-accent: #0b0b0b;
+      --warn-bg: #3a2a00;
+      --warn-text: #ffe08a;
+      --focus: #ffb36b;
+      color-scheme: dark;
+    }
+  }
+
+  html { font-size: 18px; -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--surface); color: var(--text);
+    font-family: "Malgun Gothic", "맑은 고딕", "Apple SD Gothic Neo", "Noto Sans KR", "Noto Sans CJK KR", system-ui, sans-serif;
+    line-height: 1.55; word-break: keep-all; overflow-wrap: anywhere;
+  }
+  :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+  main { max-width: 56rem; margin: 0 auto; padding: 16px 16px 64px; }
+  h1 { font-size: 1.5rem; margin: 0.4rem 0 0.2rem; }
+  .sub { margin: 0 0 1rem; color: var(--text-2); }
+
+  .tiles { display: flex; flex-wrap: wrap; gap: 12px; margin: 0.8rem 0; }
+  .tile { flex: 1 1 12rem; padding: 0.8rem 1rem; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); }
+  .tile .label { margin: 0; color: var(--text-2); font-size: 0.9rem; }
+  .tile .value { margin: 0.1rem 0 0; font-size: 1.25rem; font-weight: 600; }
+  .tile .value.hero { font-size: 3rem; line-height: 1.1; }
+
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 0.6rem 0 1.2rem; }
+  .btn {
+    font: inherit; font-weight: 700; min-height: 44px; padding: 0.4rem 1rem; border-radius: 10px;
+    border: 2px solid var(--accent); background: var(--surface); color: var(--accent); cursor: pointer;
+  }
+  .btn.primary { background: var(--accent); color: var(--on-accent); }
+  .hint { color: var(--text-2); font-size: 0.9rem; }
+
+  .notice { margin: 0.8rem 0; padding: 0.6rem 0.9rem; border-radius: 10px; background: var(--warn-bg); color: var(--warn-text); font-weight: 700; }
+  .notice[hidden] { display: none; }
+
+  .keyform { display: flex; flex-wrap: wrap; gap: 10px; margin: 1rem 0; }
+  .keyform input {
+    flex: 1 1 16rem; font: inherit; padding: 0.5rem 0.7rem; border: 2px solid var(--text-2);
+    border-radius: 10px; background: var(--surface); color: var(--text);
+  }
+
+  .card { margin: 1rem 0; padding: 1rem 1.1rem; border: 1px solid var(--line); border-radius: 14px; }
+  .card h2 { margin: 0; font-size: 1.15rem; }
+  .card .qtext { margin: 0.2rem 0 0; color: var(--text-2); }
+  .card .meta { margin: 0.3rem 0 0; color: var(--text-2); font-size: 0.9rem; }
+
+  /* 문항 하나 = 막대 하나씩. 막대 길이는 그 문항에 답한 사람 중 고른 비율 */
+  .rows { list-style: none; margin: 0.7rem 0 0; padding: 0; }
+  .row {
+    display: grid; grid-template-columns: minmax(0, 17rem) minmax(0, 1fr) 7rem;
+    align-items: center; gap: 0.15rem 0.9rem; padding: 0.3rem 0;
+  }
+  .row .name.top { font-weight: 700; }
+  .row .name .gone { color: var(--text-2); font-size: 0.85rem; }
+  .row .track { height: 18px; }
+  .row .fill { height: 18px; max-width: 100%; background: var(--series); border-radius: 0 4px 4px 0; }
+  .row .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  @media (max-width: 640px) {
+    .row { grid-template-columns: minmax(0, 1fr) auto; padding: 0.4rem 0; }
+    .row .name { grid-column: 1 / -1; }
+  }
+
+  details { margin: 0.8rem 0 0; }
+  summary { cursor: pointer; font-weight: 700; min-height: 44px; display: flex; align-items: center; list-style: none; }
+  summary::-webkit-details-marker { display: none; }
+  summary::before { content: "▸"; display: inline-block; width: 1.2em; }
+  details[open] > summary::before { content: "▾"; }
+  .texts { margin: 0.3rem 0 0; padding-left: 1.2rem; }
+  .texts li { margin: 0.35rem 0; }
+  .texts .at { color: var(--text-2); font-size: 0.85rem; margin-left: 0.4rem; white-space: nowrap; }
+  .empty { color: var(--text-2); }
+
+  @media (forced-colors: active) {
+    .row .fill { background: CanvasText; forced-color-adjust: none; }
+  }
+</style>
+</head>
+<body>
+<main id="main">
+  <h1>설문 결과</h1>
+  <p class="sub" id="survey-title"></p>
+  <div id="app"><p>불러오는 중입니다…</p></div>
+  <noscript><p>이 화면을 보려면 인터넷 브라우저에서 자바스크립트를 켜야 합니다.</p></noscript>
+</main>
+
+<script src="config.js"></script>
+<script src="questions.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var S = window.SURVEY;
+  var Q = S.questions;
+  var ENDPOINT = String(window.SURVEY_ENDPOINT || '').trim();
+  var REFRESH_MS = 60000;
+
+  var app = document.getElementById('app');
+  document.getElementById('survey-title').textContent = S.title;
+
+  var data = null;
+  var loadedAt = null;
+  var loading = false;
+  var errorEl = null;
+
+  function el(tag, props, children) {
+    var node = document.createElement(tag);
+    Object.keys(props || {}).forEach(function (k) {
+      var v = props[k];
+      if (v == null || v === false) return;
+      if (k === 'text') node.textContent = v;
+      else if (k === 'class') node.className = v;
+      else if (k === 'hidden') node.hidden = true;
+      else if (k.slice(0, 2) === 'on') node.addEventListener(k.slice(2), v);
+      else node.setAttribute(k, v);
+    });
+    (children || []).forEach(function (c) {
+      if (c == null) return;
+      node.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+    });
+    return node;
+  }
+
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function clock(d) { return pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds()); }
+
+  // ---------- 비밀번호: 관리자 링크의 #key=... 에서 읽는다 (# 뒤는 인터넷으로 안 나간다)
+  function readKey() {
+    var m = location.hash.match(/key=([^&]+)/);
+    if (!m) return '';
+    try { return decodeURIComponent(m[1]).trim(); } catch (e) { return ''; }
+  }
+
+  function showKeyForm(message) {
+    app.textContent = '';
+    var input = el('input', { type: 'text', id: 'key', autocomplete: 'off', spellcheck: 'false' });
+    var form = el('form', { class: 'keyform' }, [
+      el('label', { for: 'key', class: 'hint', text: '관리자 비밀번호' }),
+      input,
+      el('button', { type: 'submit', class: 'btn primary', text: '결과 보기' })
+    ]);
+    form.addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      var k = input.value.trim();
+      if (!k) return;
+      try { history.replaceState(null, '', '#key=' + encodeURIComponent(k)); } catch (e) { location.hash = 'key=' + encodeURIComponent(k); }
+      refresh();
+    });
+    if (message) app.appendChild(el('p', { class: 'notice', text: message }));
+    app.appendChild(el('p', { text: '받으신 관리자 링크로 열면 비밀번호를 넣지 않아도 됩니다.' }));
+    app.appendChild(form);
+  }
+
+  // ---------- 불러오기
+  function refresh() {
+    if (loading) return;
+    if (!ENDPOINT) {
+      app.textContent = '';
+      app.appendChild(el('p', { class: 'notice', text: '설정이 아직 끝나지 않았습니다. config.js 에 구글 웹 앱 주소를 넣어야 결과를 볼 수 있습니다.' }));
+      return;
+    }
+    var key = readKey();
+    if (!key) { showKeyForm(''); return; }
+
+    loading = true;
+    var ctrl = typeof window.AbortController === 'function' ? new window.AbortController() : null;
+    var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, 30000);
+    var url = ENDPOINT + (ENDPOINT.indexOf('?') >= 0 ? '&' : '?') + 'key=' + encodeURIComponent(key);
+
+    fetch(url, { signal: ctrl ? ctrl.signal : undefined, cache: 'no-store' })
+      .then(function (res) { return res.json(); })
+      .then(function (d) {
+        clearTimeout(timer);
+        loading = false;
+        if (!d || d.ok !== true) {
+          if (d && d.error === 'key') {
+            data = null;
+            showKeyForm('비밀번호가 맞지 않습니다. 받으신 관리자 링크를 그대로 여셨는지 확인해 주세요.');
+            return;
+          }
+          throw new Error('bad');
+        }
+        data = { responses: Array.isArray(d.responses) ? d.responses : [], broken: Number(d.broken) || 0 };
+        loadedAt = new Date();
+        draw();
+      })
+      .catch(function () {
+        clearTimeout(timer);
+        loading = false;
+        if (data) {
+          if (errorEl) {
+            errorEl.textContent = '방금 새로 불러오지 못했습니다 (' + clock(new Date()) + '). 아래는 ' + clock(loadedAt) + '에 불러온 결과입니다.';
+            errorEl.hidden = false;
+          }
+        } else {
+          app.textContent = '';
+          app.appendChild(el('p', { class: 'notice', text: '결과를 불러오지 못했습니다. 인터넷 연결을 확인하시고 잠시 뒤 다시 열어 주세요.' }));
+          app.appendChild(el('button', { type: 'button', class: 'btn primary', text: '다시 불러오기', onclick: refresh }));
+        }
+      });
+  }
+
+  // ---------- 세기
+  function tally(q, responses) {
+    var counts = Object.create(null);
+    q.options && q.options.forEach(function (o) { counts[o] = 0; });
+    var gone = Object.create(null);
+    var answered = 0;
+    var etcTexts = [];
+    var detailTexts = [];
+    var texts = [];
+
+    responses.forEach(function (r) {
+      var a = r && r.answers ? r.answers[q.id] : null;
+      if (!a) return;
+      var at = S.str(r.at);
+      if (q.type === 'text') {
+        var t = S.str(a.text);
+        if (t) texts.push({ at: at, text: t });
+        return;
+      }
+      var sel = S.sels(a);
+      if (!sel.length) return;
+      answered++;
+      sel.forEach(function (s) {
+        if (s in counts) counts[s]++;
+        else gone[s] = (gone[s] || 0) + 1;
+      });
+      if (q.etc && sel.indexOf(q.etc) >= 0 && S.str(a.etc)) etcTexts.push({ at: at, text: S.str(a.etc) });
+      if (S.showsDetail(q, a) && S.str(a.text)) detailTexts.push({ at: at, text: S.str(a.text) });
+    });
+
+    return { counts: counts, gone: gone, answered: answered, etcTexts: etcTexts, detailTexts: detailTexts, texts: texts };
+  }
+
+  // ---------- 그리기
+  // 1분마다 다시 그려도 펼쳐 둔 목록은 펼친 채로 둔다
+  var openState = Object.create(null);
+
+  function textList(key, summaryText, items, open) {
+    var list = items.slice().reverse();
+    if (key in openState) open = openState[key];
+    return el('details', { 'data-key': key, open: open ? '' : null }, [
+      el('summary', { text: summaryText + ' ' + items.length + '건' }),
+      list.length
+        ? el('ul', { class: 'texts' }, list.map(function (it) {
+            return el('li', null, [it.text, it.at ? el('span', { class: 'at', text: it.at }) : null]);
+          }))
+        : el('p', { class: 'empty', text: '아직 없습니다.' })
+    ]);
+  }
+
+  function rowsFor(q, t) {
+    var names = q.options.slice();
+    Object.keys(t.gone).forEach(function (g) { names.push(g); });
+    var max = 0;
+    names.forEach(function (n) { max = Math.max(max, n in t.counts ? t.counts[n] : t.gone[n]); });
+
+    return el('ul', { class: 'rows' }, names.map(function (n) {
+      var isGone = !(n in t.counts);
+      var c = isGone ? t.gone[n] : t.counts[n];
+      var pct = t.answered ? Math.round(c / t.answered * 100) : 0;
+      return el('li', { class: 'row' }, [
+        el('span', { class: 'name' + (c > 0 && c === max ? ' top' : '') }, [
+          n, isGone ? el('span', { class: 'gone', text: ' (지금 설문에 없는 선택지)' }) : null
+        ]),
+        el('span', { class: 'track', 'aria-hidden': 'true' }, [
+          el('span', { class: 'fill', style: 'display:block;width:' + (t.answered ? c / t.answered * 100 : 0) + '%' })
+        ]),
+        el('span', { class: 'num', text: c + '명 (' + pct + '%)' })
+      ]);
+    }));
+  }
+
+  function card(q, responses) {
+    var t = tally(q, responses);
+    var nodes = [
+      el('h2', { text: q.label + ' · ' + q.short }),
+      q.title !== q.short ? el('p', { class: 'qtext', text: q.title }) : null
+    ];
+
+    if (q.type === 'text') {
+      nodes.push(textList(q.id, '적어 주신 내용', t.texts, true));
+      return el('section', { class: 'card' }, nodes);
+    }
+
+    var meta = '이 문항에 답한 사람 ' + t.answered + '명';
+    if (q.type === 'many') meta += ' · ' + q.max + '개까지 고르는 문항이라 비율을 더하면 100%가 넘을 수 있습니다';
+    nodes.push(el('p', { class: 'meta', text: meta }));
+    nodes.push(rowsFor(q, t));
+    if (q.etc) nodes.push(textList(q.id + '-etc', '"' + q.etc + '"에 적어 주신 내용', t.etcTexts, false));
+    if (q.detail) nodes.push(textList(q.id + '-detail', '"' + q.detail.label + '"에 적어 주신 내용', t.detailTexts, false));
+    return el('section', { class: 'card' }, nodes);
+  }
+
+  function draw() {
+    var responses = data.responses;
+    var lastAt = responses.reduce(function (m, r) { var a = S.str(r && r.at); return a > m ? a : m; }, '');
+
+    Array.prototype.forEach.call(app.querySelectorAll('details[data-key]'), function (d) {
+      openState[d.getAttribute('data-key')] = d.open;
+    });
+    errorEl = el('p', { class: 'notice', hidden: true });
+    app.textContent = '';
+    app.appendChild(el('div', { class: 'tiles' }, [
+      el('div', { class: 'tile' }, [
+        el('p', { class: 'label', text: '응답한 사람' }),
+        el('p', { class: 'value hero', text: responses.length + '명' })
+      ]),
+      el('div', { class: 'tile' }, [
+        el('p', { class: 'label', text: '마지막 응답' }),
+        el('p', { class: 'value', text: lastAt || '아직 없음' })
+      ]),
+      el('div', { class: 'tile' }, [
+        el('p', { class: 'label', text: '이 화면을 불러온 시각' }),
+        el('p', { class: 'value', text: clock(loadedAt) })
+      ])
+    ]));
+    app.appendChild(el('div', { class: 'actions' }, [
+      el('button', { type: 'button', class: 'btn primary', text: '지금 새로 불러오기', onclick: refresh }),
+      el('button', { type: 'button', class: 'btn', text: '엑셀 파일(CSV)로 받기', onclick: downloadCsv }),
+      el('span', { class: 'hint', text: '1분마다 저절로 새로 불러옵니다.' })
+    ]));
+    app.appendChild(errorEl);
+    if (data.broken) {
+      app.appendChild(el('p', { class: 'notice', text: '시트에서 읽지 못한 응답이 ' + data.broken + '줄 있습니다. 구글 시트의 "원자료" 칸을 누가 고쳤는지 확인해 주세요.' }));
+    }
+    if (!responses.length) {
+      app.appendChild(el('p', { class: 'empty', text: '아직 들어온 응답이 없습니다.' }));
+      return;
+    }
+    Q.forEach(function (q) { app.appendChild(card(q, responses)); });
+  }
+
+  // ---------- 엑셀로 받기. 한글이 안 깨지게 맨 앞에 BOM 을 붙인다
+  function csvCell(v) {
+    var s = v == null ? '' : String(v);
+    if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+    return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }
+
+  function downloadCsv() {
+    if (!data) return;
+    var rows = [['제출 시각'].concat(S.columns({}).map(function (c) { return c[0]; }))];
+    data.responses.forEach(function (r) {
+      rows.push([S.str(r && r.at)].concat(S.columns(r && r.answers).map(function (c) { return c[1]; })));
+    });
+    var csv = '﻿' + rows.map(function (row) { return row.map(csvCell).join(','); }).join('\r\n');
+    var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    var link = document.createElement('a');
+    var now = new Date();
+    link.href = URL.createObjectURL(blob);
+    link.download = '설문결과_' + now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate()) + '.csv';
+    document.body.appendChild(link);
+    link.click();
+    setTimeout(function () { URL.revokeObjectURL(link.href); link.remove(); }, 1000);
+  }
+
+  // ---------- 저절로 새로 불러오기. 화면을 안 보고 있을 때는 쉰다
+  setInterval(function () {
+    if (!document.hidden && data) refresh();
+  }, REFRESH_MS);
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden && data && loadedAt && Date.now() - loadedAt.getTime() > REFRESH_MS) refresh();
+  });
+  window.addEventListener('hashchange', refresh);
+
+  refresh();
+})();
+</script>
+</body>
+</html>

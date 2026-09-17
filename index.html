@@ -1,0 +1,813 @@
+<!doctype html>
+<html lang="ko" data-size="0" data-contrast="normal">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>예비 은퇴자 평생교육 프로그램 요구조사</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+
+  :root {
+    --bg: #ffffff;
+    --text: #111111;
+    --muted: #333333;
+    --line: #5b6573;
+    --card: #f4f6f9;
+    --primary: #1a4fa0;
+    --on-primary: #ffffff;
+    --sel-bg: #e2ebfa;
+    --sel-line: #1a4fa0;
+    --sel-text: #111111;
+    --mark-on: #1a4fa0;
+    --mark-on-text: #ffffff;
+    --focus: #c2410c;
+    --warn-bg: #fff3d1;
+    --warn-line: #9a5b00;
+    --warn-text: #3d2600;
+    color-scheme: light;
+  }
+  /* 고대비: 검은 바탕 + 흰 글씨, 고른 것은 노랑 */
+  :root[data-contrast="high"] {
+    --bg: #000000;
+    --text: #ffffff;
+    --muted: #ffffff;
+    --line: #ffffff;
+    --card: #000000;
+    --primary: #ffd400;
+    --on-primary: #000000;
+    --sel-bg: #ffd400;
+    --sel-line: #ffd400;
+    --sel-text: #000000;
+    --mark-on: #000000;
+    --mark-on-text: #ffd400;
+    --focus: #00e5ff;
+    --warn-bg: #000000;
+    --warn-line: #ffd400;
+    --warn-text: #ffd400;
+    color-scheme: dark;
+  }
+
+  /* 글자 크기 3단계. 화면 안 모든 크기가 rem 이라 같이 커진다 */
+  html { font-size: 20px; -webkit-text-size-adjust: 100%; }
+  html[data-size="1"] { font-size: 24px; }
+  html[data-size="2"] { font-size: 29px; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Malgun Gothic", "맑은 고딕", "Apple SD Gothic Neo", "Noto Sans KR", "Noto Sans CJK KR", system-ui, sans-serif;
+    line-height: 1.6;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+  }
+
+  :focus-visible { outline: 4px solid var(--focus); outline-offset: 3px; }
+  [tabindex="-1"]:focus { outline: none; }
+
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+
+  .config-warning {
+    margin: 0; padding: 12px 16px; background: #b00020; color: #ffffff;
+    font-size: 18px; font-weight: 700;
+  }
+
+  /* 보기 설정 줄. 글자 크기와 상관없이 늘 같은 크기 */
+  .toolbar {
+    display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;
+    padding: 10px 16px; border-bottom: 2px solid var(--line); background: var(--bg);
+  }
+  .tool {
+    font: inherit; font-size: 17px; font-weight: 700; line-height: 1.2;
+    min-height: 48px; padding: 6px 10px; border-radius: 10px;
+    border: 2px solid var(--text); background: var(--bg); color: var(--text); cursor: pointer;
+  }
+  .tool[aria-pressed="true"] { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
+  .tool[aria-disabled="true"] { opacity: 0.45; cursor: default; }
+
+  main { max-width: 40rem; margin: 0 auto; padding: 16px 16px 56px; }
+
+  h1 { font-size: 1.45rem; line-height: 1.35; margin: 0.6rem 0 0.8rem; }
+  h2 { font-size: 1.15rem; margin: 1.4rem 0 0.4rem; }
+  h2.q { font-size: 1.3rem; line-height: 1.45; margin: 0.6rem 0 0.7rem; }
+  .qno { display: block; font-size: 0.8em; color: var(--primary); }
+  .lead { display: block; font-weight: 400; font-size: 0.85em; }
+
+  .intro p { margin: 0 0 0.7rem; }
+  .guide { margin: 0.3rem 0 0; padding-left: 1.3rem; }
+  .guide li { margin: 0.3rem 0; }
+
+  .progress { margin: 0.4rem 0 0.3rem; font-size: 0.9rem; color: var(--muted); }
+  .bar { height: 10px; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--card); }
+  .bar span { display: block; height: 100%; background: var(--primary); }
+
+  .help { margin: 0 0 0.6rem; padding: 0.2rem 0 0.2rem 0.8rem; border-left: 6px solid var(--primary); font-weight: 700; }
+  .help p { margin: 0; }
+
+  .speak {
+    font: inherit; font-size: 1rem; font-weight: 700; line-height: 1.3;
+    min-height: 2.6rem; margin: 0.2rem 0 0.8rem; padding: 0.3rem 1rem;
+    border-radius: 999px; border: 2px solid var(--primary); background: var(--bg); color: var(--primary); cursor: pointer;
+  }
+  .speak[data-on="true"] { background: var(--primary); color: var(--on-primary); }
+
+  fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+
+  /* 선택지: 줄 전체가 버튼. 진짜 입력칸을 투명하게 줄 전체에 덮어서 어디를 눌러도 된다 */
+  .opt {
+    position: relative; display: flex; align-items: center; gap: 0.7rem;
+    min-height: 3.2rem; margin: 0.55rem 0; padding: 0.7rem 0.9rem;
+    border: 2px solid var(--line); border-radius: 12px;
+    background: var(--card); color: var(--text); font-size: 1.1rem; line-height: 1.45; cursor: pointer;
+  }
+  .opt input {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%; margin: 0;
+    opacity: 0; cursor: pointer; z-index: 1;
+  }
+  .opt:focus-within { outline: 4px solid var(--focus); outline-offset: 3px; }
+  .opt .txt { flex: 1; }
+  .opt .mark {
+    flex: none; display: inline-flex; align-items: center; justify-content: center;
+    width: 1.5rem; height: 1.5rem; border: 3px solid var(--line); background: var(--bg);
+  }
+  .opt.radio .mark { border-radius: 50%; }
+  .opt.check .mark { border-radius: 6px; }
+  .opt.is-on {
+    background: var(--sel-bg); border-color: var(--sel-line); color: var(--sel-text);
+    box-shadow: inset 0 0 0 2px var(--sel-line); font-weight: 700;
+  }
+  .opt.is-on .mark { background: var(--mark-on); border-color: var(--mark-on); color: var(--mark-on-text); }
+  .opt.is-on .mark::before {
+    content: ""; width: 0.42rem; height: 0.78rem; margin-top: -0.18rem;
+    border: solid currentColor; border-width: 0 0.2rem 0.2rem 0; transform: rotate(45deg);
+  }
+
+  .etc { margin: -0.2rem 0 0.8rem; padding: 0.6rem 0.8rem 0.8rem; border: 2px solid var(--line); border-radius: 12px; }
+  .etc label { display: block; font-weight: 700; margin-bottom: 0.3rem; }
+  .field {
+    width: 100%; font: inherit; font-size: 1.1rem; padding: 0.55rem 0.7rem;
+    border: 2px solid var(--text); border-radius: 10px; background: var(--bg); color: var(--text);
+  }
+  textarea.field { min-height: 8rem; resize: vertical; }
+
+  .count { margin: 0.4rem 0 0; font-weight: 700; }
+
+  .notice {
+    margin: 0.6rem 0; padding: 0.6rem 0.9rem; border: 3px solid var(--warn-line); border-radius: 10px;
+    background: var(--warn-bg); color: var(--warn-text); font-weight: 700;
+  }
+  .notice[hidden], .etc[hidden] { display: none; }
+
+  .nav { display: flex; flex-wrap: wrap; gap: 0.7rem; margin-top: 1.4rem; }
+  .btn {
+    font: inherit; font-size: 1.1rem; font-weight: 700; line-height: 1.3;
+    min-height: 3.2rem; padding: 0.6rem 1.1rem; border-radius: 12px;
+    border: 3px solid var(--primary); cursor: pointer;
+  }
+  .btn.primary { flex: 2 1 9rem; background: var(--primary); color: var(--on-primary); }
+  .btn.secondary { flex: 1 1 6rem; background: var(--bg); color: var(--primary); }
+  .btn.small { flex: none; font-size: 1rem; min-height: 2.6rem; padding: 0.25rem 1rem; }
+  .btn[aria-disabled="true"] { opacity: 0.6; cursor: default; }
+
+  .review { list-style: none; margin: 1rem 0; padding: 0; }
+  .review li { margin: 0.6rem 0; padding: 0.7rem 0.9rem; border: 2px solid var(--line); border-radius: 12px; background: var(--card); }
+  .review .rq { margin: 0; font-size: 0.95rem; }
+  .review .rq .qno { display: inline; font-size: 1em; }
+  .review .ra { margin: 0.2rem 0 0.5rem; font-size: 1.1rem; font-weight: 700; }
+  .review .ra.empty { font-weight: 400; }
+  .review li.missing { border: 3px solid var(--warn-line); }
+  .review li.missing .ra { color: var(--warn-text); background: var(--warn-bg); padding: 0 0.3rem; }
+
+  @media (forced-colors: active) {
+    .opt.is-on { border-width: 5px; }
+    .tool[aria-pressed="true"], .speak[data-on="true"] { border-width: 4px; }
+  }
+</style>
+</head>
+<body>
+<p id="config-warning" class="config-warning" hidden>설정이 아직 끝나지 않았습니다. config.js 에 구글 웹 앱 주소를 넣어야 설문을 보낼 수 있습니다.</p>
+
+<div class="toolbar" role="group" aria-label="화면 보기 설정">
+  <button type="button" class="tool" id="font-down">글자 작게</button>
+  <button type="button" class="tool" id="font-up">글자 크게</button>
+  <button type="button" class="tool" id="contrast" aria-pressed="false">고대비</button>
+</div>
+
+<main id="main">
+  <noscript><p>이 설문을 보려면 인터넷 브라우저에서 자바스크립트를 켜야 합니다.</p></noscript>
+</main>
+
+<div id="announcer" class="sr-only" aria-live="assertive" aria-atomic="true"></div>
+
+<script src="config.js"></script>
+<script src="questions.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var S = window.SURVEY;
+  var Q = S.questions;
+  var N = Q.length;
+  var REVIEW = N;
+  var DONE = N + 1;
+  var ENDPOINT = String(window.SURVEY_ENDPOINT || '').trim();
+  var DRAFT_KEY = 'retire-survey-draft-v1';
+  var VIEW_KEY = 'retire-survey-view-v1';
+
+  var root = document.documentElement;
+  var main = document.getElementById('main');
+  var announcer = document.getElementById('announcer');
+  var fontDown = document.getElementById('font-down');
+  var fontUp = document.getElementById('font-up');
+  var contrastBtn = document.getElementById('contrast');
+
+  // step: -1 첫 화면, 0..N-1 질문, N 답 확인, N+1 완료
+  var state = { step: -1, answers: {}, editing: false, sending: false };
+
+  // ---------- 브라우저 저장. 막혀 있어도 설문은 끝까지 돼야 한다
+  function load(key) {
+    try { var v = localStorage.getItem(key); return v ? JSON.parse(v) : null; } catch (e) { return null; }
+  }
+  function save(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* 저장 못 해도 진행 */ }
+  }
+  function drop(key) {
+    try { localStorage.removeItem(key); } catch (e) { /* 무시 */ }
+  }
+
+  function hasAnswers(answers) {
+    if (!answers || typeof answers !== 'object') return false;
+    return Object.keys(answers).some(function (id) {
+      var a = answers[id];
+      return !!(a && ((a.sel && a.sel.length) || (a.text && a.text.trim()) || (a.etc && a.etc.trim())));
+    });
+  }
+  function saveDraft() {
+    if (state.step >= 0 && state.step <= REVIEW && hasAnswers(state.answers)) {
+      save(DRAFT_KEY, { answers: state.answers, step: state.step });
+    }
+  }
+
+  // ---------- 화면 조각 만들기
+  function el(tag, props, children) {
+    var node = document.createElement(tag);
+    Object.keys(props || {}).forEach(function (k) {
+      var v = props[k];
+      if (v == null || v === false) return;
+      if (k === 'text') node.textContent = v;
+      else if (k === 'class') node.className = v;
+      else if (k === 'hidden') node.hidden = true;
+      else if (k.slice(0, 2) === 'on') node.addEventListener(k.slice(2), v);
+      else node.setAttribute(k, v);
+    });
+    (children || []).forEach(function (c) {
+      if (c == null) return;
+      node.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+    });
+    return node;
+  }
+
+  // 받침이 있으면 앞의 것, 없으면 뒤의 것 (을/를, 은/는)
+  function josa(word, withFinal, withoutFinal) {
+    var code = word.charCodeAt(word.length - 1) - 0xac00;
+    var hasFinal = code >= 0 && code <= 11171 && code % 28 !== 0;
+    return hasFinal ? withFinal : withoutFinal;
+  }
+
+  // 화면 읽기 프로그램에 소리로만 알림. 같은 말을 두 번 해도 다시 읽게 비웠다가 넣는다
+  var announceTimer = null;
+  function announce(text) {
+    announcer.textContent = '';
+    clearTimeout(announceTimer);
+    announceTimer = setTimeout(function () { announcer.textContent = text; }, 80);
+  }
+
+  // ---------- 글자 크기 / 고대비
+  var view = load(VIEW_KEY);
+  if (!view || typeof view.size !== 'number') {
+    var wantsContrast = false;
+    try { wantsContrast = window.matchMedia('(prefers-contrast: more)').matches; } catch (e) { /* 무시 */ }
+    view = { size: 0, contrast: wantsContrast };
+  }
+  view.size = Math.max(0, Math.min(2, Math.round(view.size)));
+
+  function applyView() {
+    root.setAttribute('data-size', String(view.size));
+    root.setAttribute('data-contrast', view.contrast ? 'high' : 'normal');
+    fontDown.setAttribute('aria-disabled', view.size === 0 ? 'true' : 'false');
+    fontUp.setAttribute('aria-disabled', view.size === 2 ? 'true' : 'false');
+    contrastBtn.setAttribute('aria-pressed', view.contrast ? 'true' : 'false');
+  }
+  fontUp.addEventListener('click', function () {
+    if (view.size >= 2) { announce('이미 가장 큰 글자입니다.'); return; }
+    view.size++;
+    applyView();
+    save(VIEW_KEY, view);
+    announce('글자를 크게 했습니다. 3단계 중 ' + (view.size + 1) + '단계입니다.');
+  });
+  fontDown.addEventListener('click', function () {
+    if (view.size <= 0) { announce('이미 가장 작은 글자입니다.'); return; }
+    view.size--;
+    applyView();
+    save(VIEW_KEY, view);
+    announce('글자를 작게 했습니다. 3단계 중 ' + (view.size + 1) + '단계입니다.');
+  });
+  contrastBtn.addEventListener('click', function () {
+    view.contrast = !view.contrast;
+    applyView();
+    save(VIEW_KEY, view);
+    announce(view.contrast ? '고대비 화면을 켰습니다.' : '고대비 화면을 껐습니다.');
+  });
+  applyView();
+
+  // ---------- 읽어주기 (기기에 들어 있는 목소리를 쓴다)
+  var canSpeak = 'speechSynthesis' in window && typeof window.SpeechSynthesisUtterance === 'function';
+  var koVoice = null;
+  var speakRun = 0;
+  var speakingBtn = null;
+
+  function pickVoice() {
+    var voices = window.speechSynthesis.getVoices() || [];
+    koVoice = voices.filter(function (v) { return /^ko/i.test(v.lang); })[0] || null;
+  }
+  if (canSpeak) {
+    pickVoice();
+    try { window.speechSynthesis.onvoiceschanged = pickVoice; } catch (e) { /* 무시 */ }
+  }
+
+  function setSpeakOn(btn, on) {
+    btn.setAttribute('data-on', on ? 'true' : 'false');
+    btn.querySelector('.speak-icon').textContent = on ? '■' : '🔊';
+    btn.querySelector('.speak-label').textContent = on ? '읽기 멈추기' : btn.getAttribute('data-label');
+  }
+  function stopSpeaking() {
+    if (!canSpeak) return;
+    speakRun++;
+    window.speechSynthesis.cancel();
+    if (speakingBtn) setSpeakOn(speakingBtn, false);
+    speakingBtn = null;
+  }
+  function speakButton(label, getLines) {
+    if (!canSpeak) return null;
+    var btn = el('button', { type: 'button', class: 'speak', 'data-label': label, 'data-on': 'false' }, [
+      el('span', { class: 'speak-icon', 'aria-hidden': 'true', text: '🔊' }),
+      ' ',
+      el('span', { class: 'speak-label', text: label })
+    ]);
+    btn.addEventListener('click', function () {
+      if (btn.getAttribute('data-on') === 'true') { stopSpeaking(); return; }
+      stopSpeaking();
+      var run = speakRun;
+      var lines = getLines().filter(Boolean);
+      speakingBtn = btn;
+      setSpeakOn(btn, true);
+      // 긴 글을 한 번에 넘기면 중간에 끊기는 기기가 있어서 한 줄씩 넘긴다
+      lines.forEach(function (line, i) {
+        var u = new window.SpeechSynthesisUtterance(line);
+        u.lang = 'ko-KR';
+        u.rate = 0.9;
+        if (koVoice) u.voice = koVoice;
+        var finish = function () {
+          if (run === speakRun && speakingBtn === btn) { setSpeakOn(btn, false); speakingBtn = null; }
+        };
+        if (i === lines.length - 1) u.onend = finish;
+        u.onerror = finish;
+        window.speechSynthesis.speak(u);
+      });
+    });
+    return btn;
+  }
+
+  function helpLines(q) {
+    var out = [];
+    if (q.help) out.push(q.help);
+    if (q.type === 'one') out.push('하나만 골라 주세요.');
+    return out;
+  }
+
+  // ---------- 화면 이동
+  function goto(step, fromHistory) {
+    stopSpeaking();
+    if (step < 0 || step >= REVIEW) state.editing = false;
+    state.step = step;
+    if (!fromHistory) {
+      try { history.pushState({ step: step }, ''); } catch (e) { /* 무시 */ }
+    }
+    render(true);
+  }
+
+  function render(moveFocus) {
+    var s = state.step;
+    var screen;
+    var title;
+    if (s < 0) {
+      screen = renderIntro();
+      title = S.title;
+    } else if (s < N) {
+      screen = renderQuestion(s);
+      title = '(' + (s + 1) + '/' + N + ') ' + Q[s].short + ' - ' + S.title;
+    } else if (s === REVIEW) {
+      screen = renderReview();
+      title = '답 확인 - ' + S.title;
+    } else {
+      screen = renderDone();
+      title = '완료 - ' + S.title;
+    }
+    main.textContent = '';
+    main.appendChild(screen);
+    document.title = title;
+    saveDraft();
+    window.scrollTo(0, 0);
+    if (moveFocus) {
+      var heading = main.querySelector('[tabindex="-1"]');
+      if (heading) heading.focus();
+    }
+  }
+
+  // 휴대폰 "뒤로" 버튼을 누르면 설문 밖으로 나가지 않고 앞 질문으로 간다
+  window.addEventListener('popstate', function (e) {
+    if (state.sending) {
+      try { history.pushState({ step: state.step }, ''); } catch (err) { /* 무시 */ }
+      return;
+    }
+    var s = e.state && typeof e.state.step === 'number' ? e.state.step : -1;
+    if (state.step === DONE || s >= DONE) s = -1;
+    goto(s, true);
+  });
+
+  // ---------- 첫 화면
+  function renderIntro() {
+    var draft = load(DRAFT_KEY);
+    var hasDraft = !!(draft && hasAnswers(draft.answers));
+
+    var actions;
+    if (hasDraft) {
+      actions = el('div', null, [
+        el('p', { class: 'notice', text: '전에 답하시던 설문이 남아 있습니다.' }),
+        el('div', { class: 'nav' }, [
+          el('button', {
+            type: 'button', class: 'btn primary', text: '이어서 하기',
+            onclick: function () {
+              state.answers = draft.answers;
+              goto(Math.max(0, Math.min(REVIEW, Number(draft.step) || 0)));
+            }
+          }),
+          el('button', {
+            type: 'button', class: 'btn secondary', text: '처음부터 새로 하기',
+            onclick: function () { drop(DRAFT_KEY); state.answers = {}; goto(0); }
+          })
+        ])
+      ]);
+    } else {
+      actions = el('div', { class: 'nav' }, [
+        el('button', {
+          type: 'button', class: 'btn primary', text: '설문 시작하기',
+          onclick: function () { state.answers = {}; goto(0); }
+        })
+      ]);
+    }
+
+    return el('section', null, [
+      el('h1', { tabindex: '-1', text: S.title }),
+      speakButton('안내 읽어주기', function () { return [S.title].concat(S.intro); }),
+      el('div', { class: 'intro' }, S.intro.map(function (t) { return el('p', { text: t }); })),
+      el('h2', { text: '이용 방법' }),
+      el('ul', { class: 'guide' }, [
+        el('li', null, ['글자가 작으면 화면 맨 위의 ', el('b', { text: '글자 크게' }), ' 버튼을 누르세요.']),
+        el('li', null, ['글씨가 잘 안 보이면 ', el('b', { text: '고대비' }), ' 버튼을 누르세요. 검은 바탕에 흰 글씨로 바뀝니다.']),
+        canSpeak ? el('li', null, [el('b', { text: '읽어주기' }), ' 버튼을 누르면 소리로 읽어 드립니다.']) : null,
+        el('li', null, ['답을 고르고 ', el('b', { text: '다음' }), ' 버튼을 누르면 다음 질문으로 넘어갑니다.'])
+      ]),
+      actions
+    ]);
+  }
+
+  // ---------- 질문 화면
+  function renderQuestion(i) {
+    var q = Q[i];
+    var a = state.answers[q.id];
+    if (!a || typeof a !== 'object') a = state.answers[q.id] = {};
+    if (!Array.isArray(a.sel)) a.sel = [];
+
+    var helps = helpLines(q);
+    var helpEl = helps.length
+      ? el('div', { id: 'qhelp', class: 'help' }, helps.map(function (t) { return el('p', { text: t }); }))
+      : null;
+
+    // 눈에 보이는 안내. 소리는 announce 가 따로 내므로 화면 읽기 프로그램에는 숨긴다
+    var notice = el('p', { class: 'notice', 'aria-hidden': 'true', hidden: true });
+    function showNotice(text, after) {
+      notice.textContent = text;
+      notice.hidden = false;
+      after.parentNode.insertBefore(notice, after.nextSibling);
+      announce(text);
+    }
+    function hideNotice() { notice.hidden = true; }
+
+    var body;
+    var sync = function () { saveDraft(); };
+
+    if (q.type === 'text') {
+      var ta = el('textarea', {
+        id: 'qtext', class: 'field', rows: '5', maxlength: '1000',
+        'aria-labelledby': 'qh', 'aria-describedby': helpEl ? 'qhelp' : null
+      });
+      ta.value = a.text || '';
+      ta.addEventListener('input', function () { a.text = ta.value; saveDraft(); });
+      body = ta;
+    } else {
+      var isMany = q.type === 'many';
+      var inputs = [];
+      var countEl = isMany ? el('p', { id: 'qcount', class: 'count' }) : null;
+      var describedBy = [helpEl ? 'qhelp' : '', countEl ? 'qcount' : ''].join(' ').trim();
+      var fs = el('fieldset', { 'aria-labelledby': 'qh', 'aria-describedby': describedBy || null });
+      var etcWrap = null;
+      var detailWrap = null;
+
+      q.options.forEach(function (opt, k) {
+        var id = 'o-' + q.id + '-' + k;
+        var input = el('input', { type: isMany ? 'checkbox' : 'radio', name: 'q-' + q.id, id: id, value: opt });
+        input.checked = a.sel.indexOf(opt) >= 0;
+        var label = el('label', { class: 'opt ' + (isMany ? 'check' : 'radio'), for: id }, [
+          input,
+          el('span', { class: 'mark', 'aria-hidden': 'true' }),
+          el('span', { class: 'txt', text: opt })
+        ]);
+        inputs.push(input);
+        fs.appendChild(label);
+
+        if (isMany) {
+          input.addEventListener('click', function (ev) { onManyClick(ev, input, label); });
+        } else {
+          input.addEventListener('change', hideNotice);
+        }
+        input.addEventListener('change', function () { sync(); });
+
+        if (opt === q.etc) {
+          var etcInput = el('input', { type: 'text', id: 'etc-' + q.id, class: 'field', maxlength: '300', autocomplete: 'off' });
+          etcInput.value = a.etc || '';
+          etcInput.addEventListener('input', function () { a.etc = etcInput.value; saveDraft(); });
+          etcWrap = el('div', { class: 'etc' }, [
+            el('label', { for: etcInput.id, text: (q.etcAsk || '내용을 적어 주세요') + ' (안 적으셔도 됩니다)' }),
+            etcInput
+          ]);
+          fs.appendChild(etcWrap);
+        }
+      });
+
+      if (q.detail) {
+        var detailInput = el('input', { type: 'text', id: 'detail-' + q.id, class: 'field', maxlength: '300', autocomplete: 'off' });
+        detailInput.value = a.text || '';
+        detailInput.addEventListener('input', function () { a.text = detailInput.value; saveDraft(); });
+        detailWrap = el('div', { class: 'etc' }, [
+          el('label', { for: detailInput.id, text: q.detail.label + ' (안 적으셔도 됩니다)' }),
+          detailInput
+        ]);
+      }
+
+      // 여러 개 고르는 문항: 개수 제한과 "특별히 없음" 은 누르는 순간 막는다
+      var onManyClick = function (ev, input, label) {
+        if (!input.checked) { hideNotice(); return; }
+        var others = inputs.filter(function (x) { return x !== input && x.checked; });
+        if (q.none && input.value === q.none) {
+          if (others.length) {
+            others.forEach(function (x) { x.checked = false; });
+            showNotice('"' + q.none + '"' + josa(q.none, '을', '를') + ' 고르셔서 다른 답은 지웠습니다.', label);
+          } else {
+            hideNotice();
+          }
+          return;
+        }
+        var noneOn = q.none ? others.filter(function (x) { return x.value === q.none; })[0] : null;
+        if (noneOn) others = others.filter(function (x) { return x !== noneOn; });
+        if (others.length >= q.max) {
+          ev.preventDefault();
+          showNotice(q.max + '개까지만 고를 수 있습니다. 바꾸시려면 이미 고른 답을 한 번 더 눌러 지운 뒤 고르세요.', label);
+          return;
+        }
+        if (noneOn) {
+          noneOn.checked = false;
+          showNotice('"' + q.none + '"' + josa(q.none, '은', '는') + ' 지웠습니다.', label);
+        } else {
+          hideNotice();
+        }
+      };
+
+      sync = function () {
+        a.sel = inputs.filter(function (x) { return x.checked; }).map(function (x) { return x.value; });
+        inputs.forEach(function (x) { x.parentNode.classList.toggle('is-on', x.checked); });
+        if (etcWrap) etcWrap.hidden = a.sel.indexOf(q.etc) < 0;
+        if (detailWrap) detailWrap.hidden = !S.showsDetail(q, a);
+        if (countEl) countEl.textContent = '고른 개수: ' + a.sel.length + '개 (' + q.max + '개까지)';
+        saveDraft();
+      };
+
+      body = el('div', null, [fs, countEl, detailWrap]);
+    }
+
+    var nextLabel = state.editing ? '확인 화면으로' : (i === N - 1 ? '답 확인하기' : '다음');
+    var nav = el('div', { class: 'nav' }, [
+      el('button', { type: 'button', class: 'btn secondary', onclick: function () { goto(i - 1); } }, [
+        el('span', { 'aria-hidden': 'true', text: '◀ ' }), '이전'
+      ]),
+      el('button', { type: 'button', class: 'btn primary', onclick: onNext }, [
+        nextLabel, el('span', { 'aria-hidden': 'true', text: ' ▶' })
+      ])
+    ]);
+
+    function onNext() {
+      if (q.type !== 'text' && !a.sel.length) {
+        showNotice(q.type === 'many' ? '답을 하나 이상 골라 주세요.' : '답을 하나 골라 주세요.', body);
+        return;
+      }
+      goto(state.editing ? REVIEW : i + 1);
+    }
+
+    var screen = el('section', null, [
+      el('p', { class: 'progress', text: '전체 ' + N + '개 중 ' + (i + 1) + '번째' }),
+      el('div', { class: 'bar', 'aria-hidden': 'true' }, [
+        el('span', { style: 'width:' + Math.round((i + 1) / N * 100) + '%' })
+      ]),
+      el('h2', { id: 'qh', class: 'q', tabindex: '-1' }, [
+        el('span', { class: 'qno', text: q.label }), ' ',
+        q.lead ? el('span', { class: 'lead', text: q.lead }) : null, q.lead ? ' ' : null,
+        el('span', { text: q.title })
+      ]),
+      helpEl,
+      speakButton('질문 읽어주기', function () { return questionLines(q, a); }),
+      body,
+      nav
+    ]);
+    sync();
+    return screen;
+  }
+
+  function questionLines(q, a) {
+    var lines = [q.label + '.'];
+    if (q.lead) lines.push(q.lead);
+    lines.push(q.title);
+    lines = lines.concat(helpLines(q));
+    if (q.type === 'text') {
+      if (a.text && a.text.trim()) lines.push('지금 적으신 내용입니다. ' + a.text.trim());
+      return lines;
+    }
+    lines.push('고를 수 있는 답입니다.');
+    q.options.forEach(function (o) {
+      lines.push(o + (a.sel.indexOf(o) >= 0 ? '. 고르셨습니다.' : '.'));
+    });
+    return lines;
+  }
+
+  // ---------- 답 확인 화면
+  function reviewLines(q, a) {
+    a = a || {};
+    if (q.type === 'text') {
+      var t = (a.text || '').trim();
+      return { lines: [t || '(적지 않으셨습니다)'], empty: !t, missing: false };
+    }
+    if (!a.sel || !a.sel.length) return { lines: ['(아직 답하지 않으셨습니다)'], empty: true, missing: true };
+    var lines = [S.selText(q, a)];
+    if (S.showsDetail(q, a) && a.text && a.text.trim()) lines.push(q.detail.short + ': ' + a.text.trim());
+    return { lines: lines, empty: false, missing: false };
+  }
+
+  function renderReview() {
+    var list = el('ol', { class: 'review' }, Q.map(function (q, i) {
+      var r = reviewLines(q, state.answers[q.id]);
+      return el('li', { class: r.missing ? 'missing' : null }, [
+        el('p', { class: 'rq' }, [el('span', { class: 'qno', text: q.label }), ' · ' + q.short]),
+      ].concat(r.lines.map(function (t) {
+        return el('p', { class: 'ra' + (r.empty ? ' empty' : ''), text: t });
+      })).concat([
+        el('button', {
+          type: 'button', class: 'btn secondary small', 'aria-label': q.short + ' 고치기', text: '고치기',
+          onclick: function () { state.editing = true; goto(i); }
+        })
+      ]));
+    }));
+
+    var notice = el('p', { class: 'notice', 'aria-hidden': 'true', hidden: true });
+    var sendBtn = el('button', { type: 'button', class: 'btn primary', text: '보내기', onclick: send });
+    function say(text) {
+      notice.textContent = text;
+      notice.hidden = false;
+      announce(text);
+    }
+
+    function send() {
+      if (state.sending) return;
+      var missing = Q.filter(function (q) {
+        var a = state.answers[q.id];
+        return q.type !== 'text' && !(a && a.sel && a.sel.length);
+      });
+      if (missing.length) {
+        say('아직 답하지 않은 질문이 있습니다. ' +
+          missing.map(function (q) { return q.label + ' ' + q.short; }).join(', ') +
+          '. 고치기 버튼을 눌러 답해 주세요.');
+        return;
+      }
+      if (!ENDPOINT) {
+        say('설문을 보낼 곳이 아직 설정되지 않아 보낼 수 없습니다. 설문을 보내 주신 분께 알려 주세요.');
+        return;
+      }
+
+      state.sending = true;
+      sendBtn.setAttribute('aria-disabled', 'true');
+      sendBtn.textContent = '보내는 중입니다…';
+      say('보내는 중입니다. 잠시만 기다려 주세요.');
+
+      var answers = cleanAnswers(state.answers);
+      var payload = JSON.stringify({ answers: answers, columns: S.columns(answers) });
+      var ctrl = typeof window.AbortController === 'function' ? new window.AbortController() : null;
+      var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, 30000);
+
+      // 글자(text/plain)로 보내야 구글이 다른 사이트에서 온 요청을 받아 준다
+      fetch(ENDPOINT, { method: 'POST', body: payload, signal: ctrl ? ctrl.signal : undefined })
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+          clearTimeout(timer);
+          if (!data || data.ok !== true) throw new Error('rejected');
+          state.sending = false;
+          drop(DRAFT_KEY);
+          state.answers = {};
+          goto(DONE);
+        })
+        .catch(function () {
+          clearTimeout(timer);
+          state.sending = false;
+          sendBtn.removeAttribute('aria-disabled');
+          sendBtn.textContent = '보내기';
+          say('보내지 못했습니다. 인터넷이 연결되어 있는지 확인하시고 보내기 버튼을 한 번 더 눌러 주세요. 적으신 답은 그대로 남아 있습니다.');
+        });
+    }
+
+    return el('section', null, [
+      el('h2', { class: 'q', tabindex: '-1', text: '답을 확인해 주세요' }),
+      el('p', null, ['고칠 답이 있으면 ', el('b', { text: '고치기' }), '를 누르세요. 다 맞으면 맨 아래 ', el('b', { text: '보내기' }), '를 누르세요.']),
+      speakButton('내 답 읽어주기', function () {
+        var lines = ['고르신 답입니다.'];
+        Q.forEach(function (q) {
+          var r = reviewLines(q, state.answers[q.id]);
+          lines.push(q.short + '. ' + r.lines.join('. '));
+        });
+        return lines;
+      }),
+      list,
+      notice,
+      el('div', { class: 'nav' }, [
+        el('button', { type: 'button', class: 'btn secondary', onclick: function () { goto(N - 1); } }, [
+          el('span', { 'aria-hidden': 'true', text: '◀ ' }), '이전'
+        ]),
+        sendBtn
+      ])
+    ]);
+  }
+
+  // 보낼 때는 지금 설문에 있는 선택지만, 열려 있는 칸의 글만 담는다
+  function cleanAnswers(src) {
+    var out = {};
+    Q.forEach(function (q) {
+      var a = src[q.id] || {};
+      var c = {};
+      if (q.type === 'text') {
+        c.text = String(a.text || '').trim().slice(0, 1000);
+      } else {
+        c.sel = (a.sel || []).filter(function (s) { return q.options.indexOf(s) >= 0; });
+        var etc = String(a.etc || '').trim();
+        if (q.etc && c.sel.indexOf(q.etc) >= 0 && etc) c.etc = etc.slice(0, 300);
+        var detail = String(a.text || '').trim();
+        if (S.showsDetail(q, c) && detail) c.text = detail.slice(0, 300);
+      }
+      out[q.id] = c;
+    });
+    return out;
+  }
+
+  // ---------- 완료 화면
+  function renderDone() {
+    return el('section', null, [
+      el('h2', { class: 'q', tabindex: '-1', text: S.thanks }),
+      speakButton('읽어주기', function () { return [S.thanks, '답이 잘 전달되었습니다.']; }),
+      el('p', { text: '답이 잘 전달되었습니다. 이제 이 화면을 닫으셔도 됩니다.' }),
+      el('div', { class: 'nav' }, [
+        el('button', {
+          type: 'button', class: 'btn secondary', text: '다음 분 설문 시작하기',
+          onclick: function () { state.answers = {}; goto(-1); }
+        })
+      ])
+    ]);
+  }
+
+  // ---------- 시작
+  if (!ENDPOINT) document.getElementById('config-warning').hidden = false;
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+  try { history.replaceState({ step: -1 }, ''); } catch (e) { /* 무시 */ }
+  render(false);
+})();
+</script>
+</body>
+</html>
