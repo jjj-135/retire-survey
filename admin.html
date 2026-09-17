@@ -21,6 +21,10 @@
     --warn-bg: #fff3d1;
     --warn-text: #3d2600;
     --focus: #c2410c;
+    --danger: #b3261e;
+    --on-danger: #ffffff;
+    --ok-bg: #e3f1e6;
+    --ok-text: #0f3d1c;
     color-scheme: light;
   }
   @media (prefers-color-scheme: dark) {
@@ -36,6 +40,10 @@
       --warn-bg: #3a2a00;
       --warn-text: #ffe08a;
       --focus: #ffb36b;
+      --danger: #ffb4ab;
+      --on-danger: #3a0906;
+      --ok-bg: #16331d;
+      --ok-text: #c4ecce;
       color-scheme: dark;
     }
   }
@@ -106,6 +114,35 @@
   .texts .at { color: var(--text-2); font-size: 0.85rem; margin-left: 0.4rem; white-space: nowrap; }
   .empty { color: var(--text-2); }
 
+  .notice.ok { background: var(--ok-bg); color: var(--ok-text); }
+
+  /* 응답 하나씩 보기 · 지우기 */
+  .each { margin: 0 0 1.2rem; padding: 0.4rem 1.1rem 0.8rem; border: 1px solid var(--line); border-radius: 14px; }
+  .each > summary { font-size: 1.05rem; }
+  .resp-list { list-style: none; margin: 0.4rem 0 0; padding: 0; }
+  .resp { margin: 0.7rem 0; padding: 0.8rem 0.9rem; border-radius: 12px; background: var(--surface-2); }
+  .resp-at { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .resp-sum { margin: 0.15rem 0 0; }
+  .resp details { margin: 0.3rem 0 0; }
+  .resp dl { margin: 0.2rem 0 0; }
+  .resp dt { margin: 0.5rem 0 0; color: var(--text-2); font-size: 0.85rem; }
+  .resp dd { margin: 0; }
+  .btn.danger-line { margin-top: 0.5rem; border-color: var(--danger); color: var(--danger); background: var(--surface); }
+  .btn[disabled] { opacity: 0.5; cursor: default; }
+
+  /* 지우기 확인 창 */
+  dialog.confirm {
+    width: min(92vw, 28rem); padding: 0; border: 0; border-radius: 16px;
+    background: var(--surface); color: var(--text); box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+  }
+  dialog.confirm::backdrop { background: rgba(0, 0, 0, 0.55); }
+  dialog.confirm form { margin: 0; padding: 1.2rem 1.2rem 1rem; }
+  dialog.confirm h2 { margin: 0 0 0.6rem; font-size: 1.25rem; }
+  dialog.confirm p { margin: 0 0 1rem; white-space: pre-line; }
+  .confirm-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; }
+  .confirm-actions .btn { flex: 1 1 8rem; min-height: 52px; font-size: 1.05rem; }
+  .btn.danger { background: var(--danger); border-color: var(--danger); color: var(--on-danger); }
+
   @media (forced-colors: active) {
     .row .fill { background: CanvasText; forced-color-adjust: none; }
   }
@@ -118,6 +155,17 @@
   <div id="app"><p>불러오는 중입니다…</p></div>
   <noscript><p>이 화면을 보려면 인터넷 브라우저에서 자바스크립트를 켜야 합니다.</p></noscript>
 </main>
+
+<dialog id="confirm" class="confirm" aria-labelledby="confirm-title" aria-describedby="confirm-body">
+  <form method="dialog">
+    <h2 id="confirm-title"></h2>
+    <p id="confirm-body"></p>
+    <div class="confirm-actions">
+      <button type="submit" value="cancel" class="btn" id="confirm-cancel">취소</button>
+      <button type="submit" value="ok" class="btn danger" id="confirm-ok"></button>
+    </div>
+  </form>
+</dialog>
 
 <script src="config.js"></script>
 <script src="questions.js"></script>
@@ -136,6 +184,8 @@
   var data = null;
   var loadedAt = null;
   var loading = false;
+  var again = false;   // 불러오는 중에 또 불러오라는 요청이 오면, 끝난 뒤 한 번 더 불러온다
+  var flash = null;    // 지우기 결과 안내 { ok, text }
   var errorEl = null;
 
   function el(tag, props, children) {
@@ -188,7 +238,7 @@
 
   // ---------- 불러오기
   function refresh() {
-    if (loading) return;
+    if (loading) { again = true; return; }
     if (!ENDPOINT) {
       app.textContent = '';
       app.appendChild(el('p', { class: 'notice', text: '설정이 아직 끝나지 않았습니다. config.js 에 구글 웹 앱 주소를 넣어야 결과를 볼 수 있습니다.' }));
@@ -218,10 +268,21 @@
         data = { responses: Array.isArray(d.responses) ? d.responses : [], broken: Number(d.broken) || 0 };
         loadedAt = new Date();
         draw();
+        if (again) {
+          again = false;
+          refresh();
+        } else {
+          flash = null;
+        }
       })
       .catch(function () {
         clearTimeout(timer);
         loading = false;
+        if (again) {
+          again = false;
+          refresh();
+          return;
+        }
         if (data) {
           if (errorEl) {
             errorEl.textContent = '방금 새로 불러오지 못했습니다 (' + clock(new Date()) + '). 아래는 ' + clock(loadedAt) + '에 불러온 결과입니다.';
@@ -357,6 +418,12 @@
       el('span', { class: 'hint', text: '1분마다 저절로 새로 불러옵니다.' })
     ]));
     app.appendChild(errorEl);
+    if (flash) {
+      var flashEl = el('p', { class: 'notice' + (flash.ok ? ' ok' : ''), role: 'status', text: flash.text });
+      app.appendChild(flashEl);
+      if (!flash.shown && flashEl.scrollIntoView) flashEl.scrollIntoView({ block: 'center' });
+      flash.shown = true;
+    }
     if (data.broken) {
       app.appendChild(el('p', { class: 'notice', text: '시트에서 읽지 못한 응답이 ' + data.broken + '줄 있습니다. 구글 시트의 "원자료" 칸을 누가 고쳤는지 확인해 주세요.' }));
     }
@@ -364,7 +431,118 @@
       app.appendChild(el('p', { class: 'empty', text: '아직 들어온 응답이 없습니다.' }));
       return;
     }
+    app.appendChild(eachSection(responses));
     Q.forEach(function (q) { app.appendChild(card(q, responses)); });
+  }
+
+  // ---------- 응답 하나씩 보기 · 지우기
+  function hasId(r) {
+    return !!(r && typeof r.id === 'string' && r.id);
+  }
+
+  function summaryOf(r) {
+    return S.columns(r && r.answers).slice(0, 3).map(function (c) { return c[1] || '-'; }).join(' · ');
+  }
+
+  function eachSection(responses) {
+    var list = responses.slice().reverse();
+    var needsDeploy = list.some(function (r) { return !hasId(r); });
+    return el('details', { class: 'each', 'data-key': 'each', open: openState.each ? '' : null }, [
+      el('summary', { text: '응답 하나씩 보기 · 지우기 (' + list.length + '개)' }),
+      needsDeploy ? el('p', { class: 'notice', text: '구글 스크립트를 새 버전으로 배포해야 지우기 버튼이 나옵니다.' }) : null,
+      el('ul', { class: 'resp-list' }, list.map(function (r) {
+        var at = S.str(r && r.at) || '시각 없음';
+        var ansKey = 'ans-' + (hasId(r) ? r.id : at);
+        var answers = S.columns(r && r.answers).filter(function (c) { return c[1]; });
+        var btn = null;
+        if (hasId(r)) {
+          btn = el('button', { type: 'button', class: 'btn danger-line', text: '이 응답 지우기' });
+          btn.addEventListener('click', function () { removeResponse(r, btn); });
+        }
+        return el('li', { class: 'resp' }, [
+          el('p', { class: 'resp-at', text: at }),
+          el('p', { class: 'resp-sum', text: summaryOf(r) }),
+          el('details', { 'data-key': ansKey, open: openState[ansKey] ? '' : null }, [
+            el('summary', { text: '전체 답 보기' }),
+            el('dl', null, answers.reduce(function (acc, c) {
+              acc.push(el('dt', { text: c[0] }), el('dd', { text: c[1] }));
+              return acc;
+            }, []))
+          ]),
+          btn
+        ]);
+      }))
+    ]);
+  }
+
+  // 확인 창. 두 번째 창의 "지우기"는 1초 뒤에 눌린다 (두 번 연달아 톡톡 눌러 지워지는 것을 막는다)
+  var dlg = document.getElementById('confirm');
+  var askRun = 0;
+  function ask(title, body, okText, delayMs) {
+    return new Promise(function (resolve) {
+      if (!dlg || typeof dlg.showModal !== 'function') {
+        resolve(window.confirm(title + '\n\n' + body));
+        return;
+      }
+      var run = ++askRun;
+      var okBtn = document.getElementById('confirm-ok');
+      document.getElementById('confirm-title').textContent = title;
+      document.getElementById('confirm-body').textContent = body;
+      okBtn.textContent = okText;
+      okBtn.disabled = !!delayMs;
+      dlg.returnValue = '';
+      dlg.addEventListener('close', function onClose() {
+        dlg.removeEventListener('close', onClose);
+        resolve(dlg.returnValue === 'ok');
+      });
+      dlg.showModal();
+      document.getElementById('confirm-cancel').focus();
+      if (delayMs) setTimeout(function () { if (run === askRun) okBtn.disabled = false; }, delayMs);
+    });
+  }
+
+  var busy = false;
+  function removeResponse(r, btn) {
+    if (busy) return;
+    busy = true;
+    var at = S.str(r.at) || '시각 없음';
+    ask('이 응답을 지울까요?', '제출 시각: ' + at + '\n' + summaryOf(r), '지우기', 0)
+      .then(function (yes) {
+        if (!yes) return false;
+        return ask('정말 지우시겠어요?', '지운 응답은 결과에서 사라지고, 이 화면에서는 되살릴 수 없습니다.\n\n제출 시각: ' + at, '완전히 지우기', 1000);
+      })
+      .then(function (yes) {
+        if (!yes) { busy = false; return null; }
+        btn.disabled = true;
+        btn.textContent = '지우는 중…';
+        var ctrl = typeof window.AbortController === 'function' ? new window.AbortController() : null;
+        var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, 30000);
+        return fetch(ENDPOINT, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'delete', key: readKey(), id: r.id }),
+          signal: ctrl ? ctrl.signal : undefined
+        })
+          .then(function (res) { return res.json(); })
+          .then(function (d) {
+            clearTimeout(timer);
+            if (d && d.ok === true) flash = { ok: true, text: '응답 1개를 지웠습니다. (제출 시각 ' + at + ')' };
+            else if (d && d.error === 'notfound') flash = { ok: true, text: '이미 지워진 응답입니다. 목록을 새로 불러왔습니다.' };
+            else if (d && d.error === 'key') flash = { ok: false, text: '비밀번호가 맞지 않아 지우지 못했습니다.' };
+            else throw new Error('bad');
+            busy = false;
+            refresh();
+          }, function (err) {
+            clearTimeout(timer);
+            throw err;
+          });
+      })
+      .catch(function () {
+        busy = false;
+        btn.disabled = false;
+        btn.textContent = '이 응답 지우기';
+        flash = { ok: false, text: '지우지 못했습니다. 인터넷 연결을 확인하시고 다시 해 주세요.' };
+        if (data) draw();
+      });
   }
 
   // ---------- 엑셀로 받기. 한글이 안 깨지게 맨 앞에 BOM 을 붙인다
