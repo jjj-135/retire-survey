@@ -27,7 +27,7 @@
     --warn-text: #3d2600;
     color-scheme: light;
   }
-  /* 고대비: 검은 바탕 + 흰 글씨, 고른 것은 노랑 */
+  /* 검은 바탕(고대비): 검은 바탕 + 흰 글씨, 고른 것은 노랑 */
   :root[data-contrast="high"] {
     --bg: #000000;
     --text: #ffffff;
@@ -48,10 +48,20 @@
     color-scheme: dark;
   }
 
-  /* 글자 크기 3단계. 화면 안 모든 크기가 rem 이라 같이 커진다 */
+  /* 글자 크기 5단계. 화면 안 모든 크기가 rem 이라 같이 커진다 */
   html { font-size: 20px; -webkit-text-size-adjust: 100%; }
   html[data-size="1"] { font-size: 24px; }
   html[data-size="2"] { font-size: 29px; }
+  html[data-size="3"] { font-size: 35px; }
+  html[data-size="4"] { font-size: 42px; }
+  /* 아주 큰 글자에서는 여백·네모칸을 줄여 한 줄에 글자가 더 들어가게 한다 */
+  html[data-size="3"] main, html[data-size="4"] main { padding-left: 12px; padding-right: 12px; }
+  html[data-size="3"] h2.q, html[data-size="4"] h2.q { font-size: 1.15rem; }
+  html[data-size="3"] .help, html[data-size="4"] .help { padding-left: 0.45rem; border-left-width: 5px; }
+  html[data-size="3"] .speak, html[data-size="4"] .speak { padding: 0.15rem 0.6rem; }
+  html[data-size="3"] .opt, html[data-size="4"] .opt { min-height: 2.4rem; gap: 0.4rem; padding: 0.35rem 0.5rem; border-radius: 10px; }
+  html[data-size="3"] .opt .mark, html[data-size="4"] .opt .mark { width: 1rem; height: 1rem; }
+  html[data-size="3"] .etc, html[data-size="4"] .etc { padding: 0.4rem 0.45rem 0.5rem; }
 
   body {
     margin: 0;
@@ -194,7 +204,7 @@
 <div class="toolbar" role="group" aria-label="화면 보기 설정">
   <button type="button" class="tool" id="font-down">글자 작게</button>
   <button type="button" class="tool" id="font-up">글자 크게</button>
-  <button type="button" class="tool" id="contrast" aria-pressed="false">고대비</button>
+  <button type="button" class="tool" id="contrast" aria-pressed="false">검은 바탕</button>
 </div>
 
 <main id="main">
@@ -205,6 +215,7 @@
 
 <script src="config.js"></script>
 <script src="questions.js"></script>
+<script src="speech.js"></script>
 <script>
 (function () {
   'use strict';
@@ -271,6 +282,12 @@
     return node;
   }
 
+  // "스트레칭·생활체육" 은 낱말을 안 쪼개는 설정 때문에 줄이 넘칠 때 가운뎃점만 따로 떨어진다.
+  // 가운뎃점 뒤에 보이지 않는 줄바꿈 자리를 넣는다 (화면에만. 저장하는 답 글자는 그대로)
+  function breakable(text) {
+    return String(text).replace(/·/g, '·​');
+  }
+
   // 받침이 있으면 앞의 것, 없으면 뒤의 것 (을/를, 은/는)
   function josa(word, withFinal, withoutFinal) {
     var code = word.charCodeAt(word.length - 1) - 0xac00;
@@ -286,58 +303,49 @@
     announceTimer = setTimeout(function () { announcer.textContent = text; }, 80);
   }
 
-  // ---------- 글자 크기 / 고대비
+  // ---------- 글자 크기 / 검은 바탕
+  var MAX_SIZE = 4;   // 0~4, 5단계
   var view = load(VIEW_KEY);
   if (!view || typeof view.size !== 'number') {
     var wantsContrast = false;
     try { wantsContrast = window.matchMedia('(prefers-contrast: more)').matches; } catch (e) { /* 무시 */ }
     view = { size: 0, contrast: wantsContrast };
   }
-  view.size = Math.max(0, Math.min(2, Math.round(view.size)));
+  view.size = Math.max(0, Math.min(MAX_SIZE, Math.round(view.size)));
 
   function applyView() {
     root.setAttribute('data-size', String(view.size));
     root.setAttribute('data-contrast', view.contrast ? 'high' : 'normal');
     fontDown.setAttribute('aria-disabled', view.size === 0 ? 'true' : 'false');
-    fontUp.setAttribute('aria-disabled', view.size === 2 ? 'true' : 'false');
+    fontUp.setAttribute('aria-disabled', view.size === MAX_SIZE ? 'true' : 'false');
     contrastBtn.setAttribute('aria-pressed', view.contrast ? 'true' : 'false');
   }
   fontUp.addEventListener('click', function () {
-    if (view.size >= 2) { announce('이미 가장 큰 글자입니다.'); return; }
+    if (view.size >= MAX_SIZE) { announce('이미 가장 큰 글자입니다.'); return; }
     view.size++;
     applyView();
     save(VIEW_KEY, view);
-    announce('글자를 크게 했습니다. 3단계 중 ' + (view.size + 1) + '단계입니다.');
+    announce('글자를 크게 했습니다. ' + (MAX_SIZE + 1) + '단계 중 ' + (view.size + 1) + '단계입니다.');
   });
   fontDown.addEventListener('click', function () {
     if (view.size <= 0) { announce('이미 가장 작은 글자입니다.'); return; }
     view.size--;
     applyView();
     save(VIEW_KEY, view);
-    announce('글자를 작게 했습니다. 3단계 중 ' + (view.size + 1) + '단계입니다.');
+    announce('글자를 작게 했습니다. ' + (MAX_SIZE + 1) + '단계 중 ' + (view.size + 1) + '단계입니다.');
   });
   contrastBtn.addEventListener('click', function () {
     view.contrast = !view.contrast;
     applyView();
     save(VIEW_KEY, view);
-    announce(view.contrast ? '고대비 화면을 켰습니다.' : '고대비 화면을 껐습니다.');
+    announce(view.contrast ? '검은 바탕 화면을 켰습니다.' : '검은 바탕 화면을 껐습니다.');
   });
   applyView();
 
-  // ---------- 읽어주기 (기기에 들어 있는 목소리를 쓴다)
-  var canSpeak = 'speechSynthesis' in window && typeof window.SpeechSynthesisUtterance === 'function';
-  var koVoice = null;
-  var speakRun = 0;
+  // ---------- 읽어주기 (목소리 고르기와 읽는 말 다듬기는 speech.js)
+  var Speech = window.SurveySpeech;
+  var canSpeak = !!(Speech && Speech.supported);
   var speakingBtn = null;
-
-  function pickVoice() {
-    var voices = window.speechSynthesis.getVoices() || [];
-    koVoice = voices.filter(function (v) { return /^ko/i.test(v.lang); })[0] || null;
-  }
-  if (canSpeak) {
-    pickVoice();
-    try { window.speechSynthesis.onvoiceschanged = pickVoice; } catch (e) { /* 무시 */ }
-  }
 
   function setSpeakOn(btn, on) {
     btn.setAttribute('data-on', on ? 'true' : 'false');
@@ -346,8 +354,7 @@
   }
   function stopSpeaking() {
     if (!canSpeak) return;
-    speakRun++;
-    window.speechSynthesis.cancel();
+    Speech.stop();
     if (speakingBtn) setSpeakOn(speakingBtn, false);
     speakingBtn = null;
   }
@@ -361,22 +368,10 @@
     btn.addEventListener('click', function () {
       if (btn.getAttribute('data-on') === 'true') { stopSpeaking(); return; }
       stopSpeaking();
-      var run = speakRun;
-      var lines = getLines().filter(Boolean);
       speakingBtn = btn;
       setSpeakOn(btn, true);
-      // 긴 글을 한 번에 넘기면 중간에 끊기는 기기가 있어서 한 줄씩 넘긴다
-      lines.forEach(function (line, i) {
-        var u = new window.SpeechSynthesisUtterance(line);
-        u.lang = 'ko-KR';
-        u.rate = 0.9;
-        if (koVoice) u.voice = koVoice;
-        var finish = function () {
-          if (run === speakRun && speakingBtn === btn) { setSpeakOn(btn, false); speakingBtn = null; }
-        };
-        if (i === lines.length - 1) u.onend = finish;
-        u.onerror = finish;
-        window.speechSynthesis.speak(u);
+      Speech.speak(getLines(), function () {
+        if (speakingBtn === btn) { setSpeakOn(btn, false); speakingBtn = null; }
       });
     });
     return btn;
@@ -477,8 +472,8 @@
       el('div', { class: 'intro' }, S.intro.map(function (t) { return el('p', { text: t }); })),
       el('h2', { text: '이용 방법' }),
       el('ul', { class: 'guide' }, [
-        el('li', null, ['글자가 작으면 화면 맨 위의 ', el('b', { text: '글자 크게' }), ' 버튼을 누르세요.']),
-        el('li', null, ['글씨가 잘 안 보이면 ', el('b', { text: '고대비' }), ' 버튼을 누르세요. 검은 바탕에 흰 글씨로 바뀝니다.']),
+        el('li', null, ['글자가 작으면 화면 맨 위의 ', el('b', { text: '글자 크게' }), ' 버튼을 누르세요. 누를 때마다 더 커집니다.']),
+        el('li', null, ['글씨가 잘 안 보이면 ', el('b', { text: '검은 바탕' }), ' 버튼을 누르세요. 검은 바탕에 흰 글씨로 바뀌어 더 또렷하게 보입니다. 한 번 더 누르면 원래대로 돌아옵니다.']),
         canSpeak ? el('li', null, [el('b', { text: '읽어주기' }), ' 버튼을 누르면 소리로 읽어 드립니다.']) : null,
         el('li', null, ['답을 고르고 ', el('b', { text: '다음' }), ' 버튼을 누르면 다음 질문으로 넘어갑니다.'])
       ]),
@@ -535,7 +530,7 @@
         var label = el('label', { class: 'opt ' + (isMany ? 'check' : 'radio'), for: id }, [
           input,
           el('span', { class: 'mark', 'aria-hidden': 'true' }),
-          el('span', { class: 'txt', text: opt })
+          el('span', { class: 'txt', text: breakable(opt) })
         ]);
         inputs.push(input);
         fs.appendChild(label);
@@ -635,7 +630,7 @@
       el('h2', { id: 'qh', class: 'q', tabindex: '-1' }, [
         el('span', { class: 'qno', text: q.label }), ' ',
         q.lead ? el('span', { class: 'lead', text: q.lead }) : null, q.lead ? ' ' : null,
-        el('span', { text: q.title })
+        el('span', { text: breakable(q.title) })
       ]),
       helpEl,
       speakButton('질문 읽어주기', function () { return questionLines(q, a); }),
@@ -647,7 +642,8 @@
   }
 
   function questionLines(q, a) {
-    var lines = [q.label + '.'];
+    // "요구조사 8" 은 "요구조사 8번" 으로 읽는다
+    var lines = [q.label + (/\d$/.test(q.label) ? '번' : '') + '.'];
     if (q.lead) lines.push(q.lead);
     lines.push(q.title);
     lines = lines.concat(helpLines(q));
