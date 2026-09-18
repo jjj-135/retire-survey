@@ -60,13 +60,6 @@
   h1 { font-size: 1.5rem; margin: 0.4rem 0 0.2rem; }
   .sub { margin: 0 0 1rem; color: var(--text-2); }
 
-  .tiles { display: flex; flex-wrap: wrap; gap: 12px; margin: 0.8rem 0; }
-  .tile { flex: 1 1 12rem; padding: 0.8rem 1rem; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); }
-  .tile .label { margin: 0; color: var(--text-2); font-size: 0.9rem; }
-  .tile .value { margin: 0.1rem 0 0; font-size: 1.25rem; font-weight: 600; }
-  .tile .value.hero { font-size: 3rem; line-height: 1.1; }
-
-  .actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 0.6rem 0 1.2rem; }
   .btn {
     font: inherit; font-weight: 700; min-height: 44px; padding: 0.4rem 1rem; border-radius: 10px;
     border: 2px solid var(--accent); background: var(--surface); color: var(--accent); cursor: pointer;
@@ -83,52 +76,7 @@
     border-radius: 10px; background: var(--surface); color: var(--text);
   }
 
-  .card { margin: 1rem 0; padding: 1rem 1.1rem; border: 1px solid var(--line); border-radius: 14px; }
-  .card h2 { margin: 0; font-size: 1.15rem; }
-  .card .qtext { margin: 0.2rem 0 0; color: var(--text-2); }
-  .card .meta { margin: 0.3rem 0 0; color: var(--text-2); font-size: 0.9rem; }
-
-  /* 문항 하나 = 막대 하나씩. 막대 길이는 그 문항에 답한 사람 중 고른 비율 */
-  .rows { list-style: none; margin: 0.7rem 0 0; padding: 0; }
-  .row {
-    display: grid; grid-template-columns: minmax(0, 17rem) minmax(0, 1fr) 7rem;
-    align-items: center; gap: 0.15rem 0.9rem; padding: 0.3rem 0;
-  }
-  .row .name.top { font-weight: 700; }
-  .row .name .gone { color: var(--text-2); font-size: 0.85rem; }
-  .row .track { height: 18px; }
-  .row .fill { height: 18px; max-width: 100%; background: var(--series); border-radius: 0 4px 4px 0; }
-  .row .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
-  @media (max-width: 640px) {
-    .row { grid-template-columns: minmax(0, 1fr) auto; padding: 0.4rem 0; }
-    .row .name { grid-column: 1 / -1; }
-  }
-
-  details { margin: 0.8rem 0 0; }
-  summary { cursor: pointer; font-weight: 700; min-height: 44px; display: flex; align-items: center; list-style: none; }
-  summary::-webkit-details-marker { display: none; }
-  summary::before { content: "▸"; display: inline-block; width: 1.2em; }
-  details[open] > summary::before { content: "▾"; }
-  .texts { margin: 0.3rem 0 0; padding-left: 1.2rem; }
-  .texts li { margin: 0.35rem 0; }
-  .texts .at { color: var(--text-2); font-size: 0.85rem; margin-left: 0.4rem; white-space: nowrap; }
-  .empty { color: var(--text-2); }
-
   .notice.ok { background: var(--ok-bg); color: var(--ok-text); }
-
-  /* 응답 하나씩 보기 · 지우기 */
-  .each { margin: 0 0 1.2rem; padding: 0.4rem 1.1rem 0.8rem; border: 1px solid var(--line); border-radius: 14px; }
-  .each > summary { font-size: 1.05rem; }
-  .resp-list { list-style: none; margin: 0.4rem 0 0; padding: 0; }
-  .resp { margin: 0.7rem 0; padding: 0.8rem 0.9rem; border-radius: 12px; background: var(--surface-2); }
-  .resp-at { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; }
-  .resp-sum { margin: 0.15rem 0 0; }
-  .resp details { margin: 0.3rem 0 0; }
-  .resp dl { margin: 0.2rem 0 0; }
-  .resp dt { margin: 0.5rem 0 0; color: var(--text-2); font-size: 0.85rem; }
-  .resp dd { margin: 0; }
-  .btn.danger-line { margin-top: 0.5rem; border-color: var(--danger); color: var(--danger); background: var(--surface); }
-  .btn[disabled] { opacity: 0.5; cursor: default; }
 
   /* 지우기 확인 창 */
   dialog.confirm {
@@ -142,11 +90,8 @@
   .confirm-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; }
   .confirm-actions .btn { flex: 1 1 8rem; min-height: 52px; font-size: 1.05rem; }
   .btn.danger { background: var(--danger); border-color: var(--danger); color: var(--on-danger); }
-
-  @media (forced-colors: active) {
-    .row .fill { background: CanvasText; forced-color-adjust: none; }
-  }
 </style>
+<link rel="stylesheet" href="results.css">
 </head>
 <body>
 <main id="main">
@@ -169,6 +114,7 @@
 
 <script src="config.js"></script>
 <script src="questions.js"></script>
+<script src="results.js"></script>
 <script>
 (function () {
   'use strict';
@@ -185,8 +131,6 @@
   var loadedAt = null;
   var loading = false;
   var again = false;   // 불러오는 중에 또 불러오라는 요청이 오면, 끝난 뒤 한 번 더 불러온다
-  var flash = null;    // 지우기 결과 안내 { ok, text }
-  var errorEl = null;
 
   function el(tag, props, children) {
     var node = document.createElement(tag);
@@ -267,12 +211,12 @@
         }
         data = { responses: Array.isArray(d.responses) ? d.responses : [], broken: Number(d.broken) || 0 };
         loadedAt = new Date();
-        draw();
+        view.setData(data.responses, data.broken, loadedAt);
         if (again) {
           again = false;
           refresh();
         } else {
-          flash = null;
+          view.clearFlash();
         }
       })
       .catch(function () {
@@ -284,10 +228,7 @@
           return;
         }
         if (data) {
-          if (errorEl) {
-            errorEl.textContent = '방금 새로 불러오지 못했습니다 (' + clock(new Date()) + '). 아래는 ' + clock(loadedAt) + '에 불러온 결과입니다.';
-            errorEl.hidden = false;
-          }
+          view.showStale('방금 새로 불러오지 못했습니다 (' + clock(new Date()) + '). 아래는 ' + clock(loadedAt) + '에 불러온 결과입니다.');
         } else {
           app.textContent = '';
           app.appendChild(el('p', { class: 'notice', text: '결과를 불러오지 못했습니다. 인터넷 연결을 확인하시고 잠시 뒤 다시 열어 주세요.' }));
@@ -296,278 +237,25 @@
       });
   }
 
-  // ---------- 세기
-  function tally(q, responses) {
-    var counts = Object.create(null);
-    q.options && q.options.forEach(function (o) { counts[o] = 0; });
-    var gone = Object.create(null);
-    var answered = 0;
-    var etcTexts = [];
-    var detailTexts = [];
-    var texts = [];
-
-    responses.forEach(function (r) {
-      var a = r && r.answers ? r.answers[q.id] : null;
-      if (!a) return;
-      var at = S.str(r.at);
-      if (q.type === 'text') {
-        var t = S.str(a.text);
-        if (t) texts.push({ at: at, text: t });
-        return;
-      }
-      var sel = S.sels(a);
-      if (!sel.length) return;
-      answered++;
-      sel.forEach(function (s) {
-        if (s in counts) counts[s]++;
-        else gone[s] = (gone[s] || 0) + 1;
-      });
-      if (q.etc && sel.indexOf(q.etc) >= 0 && S.str(a.etc)) etcTexts.push({ at: at, text: S.str(a.etc) });
-      if (S.showsDetail(q, a) && S.str(a.text)) detailTexts.push({ at: at, text: S.str(a.text) });
-    });
-
-    return { counts: counts, gone: gone, answered: answered, etcTexts: etcTexts, detailTexts: detailTexts, texts: texts };
-  }
-
-  // ---------- 그리기
-  // 1분마다 다시 그려도 펼쳐 둔 목록은 펼친 채로 둔다
-  var openState = Object.create(null);
-
-  function textList(key, summaryText, items, open) {
-    var list = items.slice().reverse();
-    if (key in openState) open = openState[key];
-    return el('details', { 'data-key': key, open: open ? '' : null }, [
-      el('summary', { text: summaryText + ' ' + items.length + '건' }),
-      list.length
-        ? el('ul', { class: 'texts' }, list.map(function (it) {
-            return el('li', null, [it.text, it.at ? el('span', { class: 'at', text: it.at }) : null]);
-          }))
-        : el('p', { class: 'empty', text: '아직 없습니다.' })
-    ]);
-  }
-
-  function rowsFor(q, t) {
-    var names = q.options.slice();
-    Object.keys(t.gone).forEach(function (g) { names.push(g); });
-    var max = 0;
-    names.forEach(function (n) { max = Math.max(max, n in t.counts ? t.counts[n] : t.gone[n]); });
-
-    return el('ul', { class: 'rows' }, names.map(function (n) {
-      var isGone = !(n in t.counts);
-      var c = isGone ? t.gone[n] : t.counts[n];
-      var pct = t.answered ? Math.round(c / t.answered * 100) : 0;
-      return el('li', { class: 'row' }, [
-        el('span', { class: 'name' + (c > 0 && c === max ? ' top' : '') }, [
-          n, isGone ? el('span', { class: 'gone', text: ' (지금 설문에 없는 선택지)' }) : null
-        ]),
-        el('span', { class: 'track', 'aria-hidden': 'true' }, [
-          el('span', { class: 'fill', style: 'display:block;width:' + (t.answered ? c / t.answered * 100 : 0) + '%' })
-        ]),
-        el('span', { class: 'num', text: c + '명 (' + pct + '%)' })
-      ]);
-    }));
-  }
-
-  function card(q, responses) {
-    var t = tally(q, responses);
-    var nodes = [
-      el('h2', { text: q.label + ' · ' + q.short }),
-      q.title !== q.short ? el('p', { class: 'qtext', text: q.title }) : null
-    ];
-
-    if (q.type === 'text') {
-      nodes.push(textList(q.id, '적어 주신 내용', t.texts, true));
-      return el('section', { class: 'card' }, nodes);
+  // ---------- 결과 그리기는 results.js 가 한다 (manage.html 과 같은 코드)
+  var view = window.SurveyResults({
+    mount: app,
+    survey: S,
+    ask: window.SurveyConfirm,
+    onRefresh: refresh,
+    refreshHint: '1분마다 저절로 새로 불러옵니다.',
+    fileName: '설문결과',
+    onDelete: function (r) {
+      var ctrl = typeof window.AbortController === 'function' ? new window.AbortController() : null;
+      var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, 30000);
+      return fetch(ENDPOINT, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'delete', key: readKey(), id: r.id }),
+        signal: ctrl ? ctrl.signal : undefined
+      }).then(function (res) { clearTimeout(timer); return res.json(); }, function (err) { clearTimeout(timer); throw err; });
     }
+  });
 
-    var meta = '이 문항에 답한 사람 ' + t.answered + '명';
-    if (q.type === 'many') meta += ' · ' + q.max + '개까지 고르는 문항이라 비율을 더하면 100%가 넘을 수 있습니다';
-    nodes.push(el('p', { class: 'meta', text: meta }));
-    nodes.push(rowsFor(q, t));
-    if (q.etc) nodes.push(textList(q.id + '-etc', '"' + q.etc + '"에 적어 주신 내용', t.etcTexts, false));
-    if (q.detail) nodes.push(textList(q.id + '-detail', '"' + q.detail.label + '"에 적어 주신 내용', t.detailTexts, false));
-    return el('section', { class: 'card' }, nodes);
-  }
-
-  function draw() {
-    var responses = data.responses;
-    var lastAt = responses.reduce(function (m, r) { var a = S.str(r && r.at); return a > m ? a : m; }, '');
-
-    Array.prototype.forEach.call(app.querySelectorAll('details[data-key]'), function (d) {
-      openState[d.getAttribute('data-key')] = d.open;
-    });
-    errorEl = el('p', { class: 'notice', hidden: true });
-    app.textContent = '';
-    app.appendChild(el('div', { class: 'tiles' }, [
-      el('div', { class: 'tile' }, [
-        el('p', { class: 'label', text: '응답한 사람' }),
-        el('p', { class: 'value hero', text: responses.length + '명' })
-      ]),
-      el('div', { class: 'tile' }, [
-        el('p', { class: 'label', text: '마지막 응답' }),
-        el('p', { class: 'value', text: lastAt || '아직 없음' })
-      ]),
-      el('div', { class: 'tile' }, [
-        el('p', { class: 'label', text: '이 화면을 불러온 시각' }),
-        el('p', { class: 'value', text: clock(loadedAt) })
-      ])
-    ]));
-    app.appendChild(el('div', { class: 'actions' }, [
-      el('button', { type: 'button', class: 'btn primary', text: '지금 새로 불러오기', onclick: refresh }),
-      el('button', { type: 'button', class: 'btn', text: '엑셀 파일(CSV)로 받기', onclick: downloadCsv }),
-      el('span', { class: 'hint', text: '1분마다 저절로 새로 불러옵니다.' })
-    ]));
-    app.appendChild(errorEl);
-    if (flash) {
-      var flashEl = el('p', { class: 'notice' + (flash.ok ? ' ok' : ''), role: 'status', text: flash.text });
-      app.appendChild(flashEl);
-      if (!flash.shown && flashEl.scrollIntoView) flashEl.scrollIntoView({ block: 'center' });
-      flash.shown = true;
-    }
-    if (data.broken) {
-      app.appendChild(el('p', { class: 'notice', text: '시트에서 읽지 못한 응답이 ' + data.broken + '줄 있습니다. 구글 시트의 "원자료" 칸을 누가 고쳤는지 확인해 주세요.' }));
-    }
-    if (!responses.length) {
-      app.appendChild(el('p', { class: 'empty', text: '아직 들어온 응답이 없습니다.' }));
-      return;
-    }
-    app.appendChild(eachSection(responses));
-    Q.forEach(function (q) { app.appendChild(card(q, responses)); });
-  }
-
-  // ---------- 응답 하나씩 보기 · 지우기
-  function hasId(r) {
-    return !!(r && typeof r.id === 'string' && r.id);
-  }
-
-  function summaryOf(r) {
-    return S.columns(r && r.answers).slice(0, 3).map(function (c) { return c[1] || '-'; }).join(' · ');
-  }
-
-  function eachSection(responses) {
-    var list = responses.slice().reverse();
-    var needsDeploy = list.some(function (r) { return !hasId(r); });
-    return el('details', { class: 'each', 'data-key': 'each', open: openState.each ? '' : null }, [
-      el('summary', { text: '응답 하나씩 보기 · 지우기 (' + list.length + '개)' }),
-      needsDeploy ? el('p', { class: 'notice', text: '구글 스크립트를 새 버전으로 배포해야 지우기 버튼이 나옵니다.' }) : null,
-      el('ul', { class: 'resp-list' }, list.map(function (r) {
-        var at = S.str(r && r.at) || '시각 없음';
-        var ansKey = 'ans-' + (hasId(r) ? r.id : at);
-        var answers = S.columns(r && r.answers).filter(function (c) { return c[1]; });
-        var btn = null;
-        if (hasId(r)) {
-          btn = el('button', { type: 'button', class: 'btn danger-line', text: '이 응답 지우기' });
-          btn.addEventListener('click', function () { removeResponse(r, btn); });
-        }
-        return el('li', { class: 'resp' }, [
-          el('p', { class: 'resp-at', text: at }),
-          el('p', { class: 'resp-sum', text: summaryOf(r) }),
-          el('details', { 'data-key': ansKey, open: openState[ansKey] ? '' : null }, [
-            el('summary', { text: '전체 답 보기' }),
-            el('dl', null, answers.reduce(function (acc, c) {
-              acc.push(el('dt', { text: c[0] }), el('dd', { text: c[1] }));
-              return acc;
-            }, []))
-          ]),
-          btn
-        ]);
-      }))
-    ]);
-  }
-
-  // 확인 창. 두 번째 창의 "지우기"는 1초 뒤에 눌린다 (두 번 연달아 톡톡 눌러 지워지는 것을 막는다)
-  var dlg = document.getElementById('confirm');
-  var askRun = 0;
-  function ask(title, body, okText, delayMs) {
-    return new Promise(function (resolve) {
-      if (!dlg || typeof dlg.showModal !== 'function') {
-        resolve(window.confirm(title + '\n\n' + body));
-        return;
-      }
-      var run = ++askRun;
-      var okBtn = document.getElementById('confirm-ok');
-      document.getElementById('confirm-title').textContent = title;
-      document.getElementById('confirm-body').textContent = body;
-      okBtn.textContent = okText;
-      okBtn.disabled = !!delayMs;
-      dlg.returnValue = '';
-      dlg.addEventListener('close', function onClose() {
-        dlg.removeEventListener('close', onClose);
-        resolve(dlg.returnValue === 'ok');
-      });
-      dlg.showModal();
-      document.getElementById('confirm-cancel').focus();
-      if (delayMs) setTimeout(function () { if (run === askRun) okBtn.disabled = false; }, delayMs);
-    });
-  }
-
-  var busy = false;
-  function removeResponse(r, btn) {
-    if (busy) return;
-    busy = true;
-    var at = S.str(r.at) || '시각 없음';
-    ask('이 응답을 지울까요?', '제출 시각: ' + at + '\n' + summaryOf(r), '지우기', 0)
-      .then(function (yes) {
-        if (!yes) return false;
-        return ask('정말 지우시겠어요?', '지운 응답은 결과에서 사라지고, 이 화면에서는 되살릴 수 없습니다.\n\n제출 시각: ' + at, '완전히 지우기', 1000);
-      })
-      .then(function (yes) {
-        if (!yes) { busy = false; return null; }
-        btn.disabled = true;
-        btn.textContent = '지우는 중…';
-        var ctrl = typeof window.AbortController === 'function' ? new window.AbortController() : null;
-        var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, 30000);
-        return fetch(ENDPOINT, {
-          method: 'POST',
-          body: JSON.stringify({ action: 'delete', key: readKey(), id: r.id }),
-          signal: ctrl ? ctrl.signal : undefined
-        })
-          .then(function (res) { return res.json(); })
-          .then(function (d) {
-            clearTimeout(timer);
-            if (d && d.ok === true) flash = { ok: true, text: '응답 1개를 지웠습니다. (제출 시각 ' + at + ')' };
-            else if (d && d.error === 'notfound') flash = { ok: true, text: '이미 지워진 응답입니다. 목록을 새로 불러왔습니다.' };
-            else if (d && d.error === 'key') flash = { ok: false, text: '비밀번호가 맞지 않아 지우지 못했습니다.' };
-            else throw new Error('bad');
-            busy = false;
-            refresh();
-          }, function (err) {
-            clearTimeout(timer);
-            throw err;
-          });
-      })
-      .catch(function () {
-        busy = false;
-        btn.disabled = false;
-        btn.textContent = '이 응답 지우기';
-        flash = { ok: false, text: '지우지 못했습니다. 인터넷 연결을 확인하시고 다시 해 주세요.' };
-        if (data) draw();
-      });
-  }
-
-  // ---------- 엑셀로 받기. 한글이 안 깨지게 맨 앞에 BOM 을 붙인다
-  function csvCell(v) {
-    var s = v == null ? '' : String(v);
-    if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
-    return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
-  }
-
-  function downloadCsv() {
-    if (!data) return;
-    var rows = [['제출 시각'].concat(S.columns({}).map(function (c) { return c[0]; }))];
-    data.responses.forEach(function (r) {
-      rows.push([S.str(r && r.at)].concat(S.columns(r && r.answers).map(function (c) { return c[1]; })));
-    });
-    var csv = '﻿' + rows.map(function (row) { return row.map(csvCell).join(','); }).join('\r\n');
-    var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-    var link = document.createElement('a');
-    var now = new Date();
-    link.href = URL.createObjectURL(blob);
-    link.download = '설문결과_' + now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate()) + '.csv';
-    document.body.appendChild(link);
-    link.click();
-    setTimeout(function () { URL.revokeObjectURL(link.href); link.remove(); }, 1000);
-  }
 
   // ---------- 저절로 새로 불러오기. 화면을 안 보고 있을 때는 쉰다
   setInterval(function () {

@@ -1,0 +1,59 @@
+/* 결과 화면 모양. admin.html 과 manage.html 이 같이 쓴다.
+   색은 각 화면이 정한 이름(--surface, --text, --accent ...)을 그대로 쓴다. */
+
+.tiles { display: flex; flex-wrap: wrap; gap: 12px; margin: 0.8rem 0; }
+.tile { flex: 1 1 12rem; padding: 0.8rem 1rem; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); }
+.tile .label { margin: 0; color: var(--text-2); font-size: 0.9rem; }
+.tile .value { margin: 0.1rem 0 0; font-size: 1.25rem; font-weight: 600; }
+.tile .value.hero { font-size: 3rem; line-height: 1.1; }
+
+.actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 0.6rem 0 1.2rem; }
+
+.card { margin: 1rem 0; padding: 1rem 1.1rem; border: 1px solid var(--line); border-radius: 14px; }
+.card h2 { margin: 0; font-size: 1.15rem; }
+.card .qtext { margin: 0.2rem 0 0; color: var(--text-2); }
+.card .meta { margin: 0.3rem 0 0; color: var(--text-2); font-size: 0.9rem; }
+
+/* 문항 하나 = 막대 하나씩. 막대 길이는 그 문항에 답한 사람 중 고른 비율 */
+.rows { list-style: none; margin: 0.7rem 0 0; padding: 0; }
+.row {
+  display: grid; grid-template-columns: minmax(0, 17rem) minmax(0, 1fr) 7rem;
+  align-items: center; gap: 0.15rem 0.9rem; padding: 0.3rem 0;
+}
+.row .name.top { font-weight: 700; }
+.row .name .gone { color: var(--text-2); font-size: 0.85rem; }
+.row .track { height: 18px; }
+.row .fill { height: 18px; max-width: 100%; background: var(--series); border-radius: 0 4px 4px 0; }
+.row .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+@media (max-width: 640px) {
+  .row { grid-template-columns: minmax(0, 1fr) auto; padding: 0.4rem 0; }
+  .row .name { grid-column: 1 / -1; }
+}
+
+details { margin: 0.8rem 0 0; }
+summary { cursor: pointer; font-weight: 700; min-height: 44px; display: flex; align-items: center; list-style: none; }
+summary::-webkit-details-marker { display: none; }
+summary::before { content: "▸"; display: inline-block; width: 1.2em; }
+details[open] > summary::before { content: "▾"; }
+.texts { margin: 0.3rem 0 0; padding-left: 1.2rem; }
+.texts li { margin: 0.35rem 0; }
+.texts .at { color: var(--text-2); font-size: 0.85rem; margin-left: 0.4rem; white-space: nowrap; }
+.empty { color: var(--text-2); }
+
+/* 응답 하나씩 보기 · 지우기 */
+.each { margin: 0 0 1.2rem; padding: 0.4rem 1.1rem 0.8rem; border: 1px solid var(--line); border-radius: 14px; }
+.each > summary { font-size: 1.05rem; }
+.resp-list { list-style: none; margin: 0.4rem 0 0; padding: 0; }
+.resp { margin: 0.7rem 0; padding: 0.8rem 0.9rem; border-radius: 12px; background: var(--surface-2); }
+.resp-at { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; }
+.resp-sum { margin: 0.15rem 0 0; }
+.resp details { margin: 0.3rem 0 0; }
+.resp dl { margin: 0.2rem 0 0; }
+.resp dt { margin: 0.5rem 0 0; color: var(--text-2); font-size: 0.85rem; }
+.resp dd { margin: 0; }
+.btn.danger-line { margin-top: 0.5rem; border-color: var(--danger); color: var(--danger); background: var(--surface); }
+.btn[disabled] { opacity: 0.5; cursor: default; }
+
+@media (forced-colors: active) {
+  .row .fill { background: CanvasText; forced-color-adjust: none; }
+}

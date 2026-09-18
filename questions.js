@@ -7,7 +7,9 @@
 // etc: 이 선택지를 고르면 내용 적는 칸이 열린다 (etcAsk: 그 칸의 안내 글)
 // none: 이 선택지는 다른 것과 같이 고를 수 없다 ("특별히 없음" 같은 것)
 // detail: 이 문항에서 고른 답이 showUnless 가 아니면 추가로 적는 칸이 열린다
-window.SURVEY = (function () {
+// 이 저장소에 들어 있는 기본 설문. 주소에 ?id= 가 없으면 이것으로 돈다.
+// 엄마가 관리자 화면에서 만든 새 설문은 같은 모양의 정의를 서버에서 받아 쓴다.
+var SURVEY_BUILT_IN = (function () {
   var title = '예비 은퇴자 평생교육 프로그램 요구조사';
 
   var intro = [
@@ -165,6 +167,17 @@ window.SURVEY = (function () {
     }
   ];
 
+  return { title: title, intro: intro, thanks: thanks, questions: questions };
+})();
+
+// 설문 정의 하나를 받아, 설문 화면과 결과 화면이 쓰는 도구 묶음을 만든다.
+window.SURVEY_MAKE = function (def) {
+  def = def || {};
+  var title = def.title || '';
+  var intro = Array.isArray(def.intro) ? def.intro : [];
+  var thanks = def.thanks || '설문에 참여해 주셔서 감사합니다.';
+  var questions = Array.isArray(def.questions) ? def.questions : [];
+
   // 답 하나: { sel: [고른 선택지 글자...], etc: '기타 내용', text: '적은 글' }
   // 시트에서 읽어 온 답은 모양이 깨져 있을 수 있어서 글자로 바꿔 가며 읽는다.
   function sels(a) {
@@ -173,6 +186,14 @@ window.SURVEY = (function () {
 
   function str(v) {
     return v == null ? '' : String(v).trim();
+  }
+
+  // 질문 아래 안내 줄. 화면과 읽어주기가 같이 쓴다.
+  function helpLines(q) {
+    var out = [];
+    if (q.help) out.push(q.help);
+    if (q.type === 'one') out.push('하나만 골라 주세요.');
+    return out;
   }
 
   function showsDetail(q, a) {
@@ -206,14 +227,18 @@ window.SURVEY = (function () {
   }
 
   return {
+    id: def.id || '',
     title: title,
     intro: intro,
     thanks: thanks,
     questions: questions,
     sels: sels,
     str: str,
+    helpLines: helpLines,
     showsDetail: showsDetail,
     selText: selText,
     columns: columns
   };
-})();
+};
+
+window.SURVEY = window.SURVEY_MAKE(SURVEY_BUILT_IN);
