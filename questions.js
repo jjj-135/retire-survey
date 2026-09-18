@@ -228,6 +228,7 @@ window.SURVEY_MAKE = function (def) {
 
   return {
     id: def.id || '',
+    voice: def.voice !== false,   // 읽어주기 버튼을 보여 줄지 (설문마다 정한다)
     title: title,
     intro: intro,
     thanks: thanks,

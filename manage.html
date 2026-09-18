@@ -59,8 +59,8 @@
   .btn.danger-line { border-color: var(--danger); color: var(--danger); }
   .btn.small { min-height: 38px; padding: 0.2rem 0.7rem; font-size: 0.9rem; }
   .btn[disabled] { opacity: 0.5; cursor: default; }
-  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-  .row.end { justify-content: flex-end; }
+  .btn-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .btn-row.end { justify-content: flex-end; }
 
   .notice { margin: 0.8rem 0; padding: 0.6rem 0.9rem; border-radius: 10px; background: var(--warn-bg); color: var(--warn-text); font-weight: 700; }
   .notice.ok { background: var(--ok-bg); color: var(--ok-text); }
@@ -94,6 +94,14 @@
   .opt-flags label { font-weight: 400; display: flex; align-items: center; gap: 0.25rem; }
   .max-row { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.4rem; }
   .max-row input { width: 5rem; }
+
+  .check-row { display: flex; align-items: flex-start; gap: 0.5rem; margin: 0.8rem 0; }
+  .check-row input { margin-top: 0.3rem; width: 1.2rem; height: 1.2rem; }
+
+  /* 설문 화면 미리보기 (진짜 설문 화면을 그대로 띄운다) */
+  .preview { margin: 1rem 0; border: 2px solid var(--line); border-radius: 14px; overflow: hidden; background: var(--surface-2); }
+  .preview-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 0.5rem 0.7rem; }
+  .preview iframe { display: block; width: 100%; height: 620px; border: 0; border-top: 1px solid var(--line); background: #fff; }
 
   dialog.confirm {
     width: min(92vw, 28rem); padding: 0; border: 0; border-radius: 16px;
@@ -137,6 +145,9 @@
 
   // 설문 만들기 화면은 새 주소를 쓴다 (없으면 옛 주소)
   var ENDPOINT = String(window.SURVEY_ENDPOINT_NEW || window.SURVEY_ENDPOINT || '').trim();
+  // 지금 돌고 있는 설문(파일에 들어 있는 것)은 옛 주소에 응답이 쌓인다
+  var ENDPOINT_BUILTIN = String(window.SURVEY_ENDPOINT || '').trim();
+  var REFRESH_MS = 60000;
   var app = document.getElementById('app');
   var state = { key: '', surveys: [], view: 'list', draft: null, editingId: '', busy: false, flash: null };
   var uid = 0;
@@ -187,15 +198,15 @@
     try { return decodeURIComponent(m[1]).trim(); } catch (e) { return ''; }
   }
 
-  function api(params, body) {
-    var url = ENDPOINT + (ENDPOINT.indexOf('?') >= 0 ? '&' : '?') + params;
+  function api(params, body, endpoint) {
+    var base = endpoint || ENDPOINT;
     var opts = { cache: 'no-store' };
     if (body) {
       opts.method = 'POST';
       opts.body = JSON.stringify(body);
-      return fetch(ENDPOINT, opts).then(function (r) { return r.json(); });
+      return fetch(base, opts).then(function (r) { return r.json(); });
     }
-    return fetch(url, opts).then(function (r) { return r.json(); });
+    return fetch(base + (base.indexOf('?') >= 0 ? '&' : '?') + params, opts).then(function (r) { return r.json(); });
   }
 
   function loadList() {
@@ -233,7 +244,7 @@
     var form = el('form', { class: 'block' }, [
       el('label', { for: 'key', text: '관리자 비밀번호' }),
       input,
-      el('div', { class: 'row', style: 'margin-top:8px' }, [el('button', { type: 'submit', class: 'btn primary', text: '열기' })])
+      el('div', { class: 'btn-row', style: 'margin-top:8px' }, [el('button', { type: 'submit', class: 'btn primary', text: '열기' })])
     ]);
     form.addEventListener('submit', function (ev) {
       ev.preventDefault();
@@ -252,7 +263,7 @@
   // ---------- 설문 링크
   function surveyLink(id) {
     var base = location.href.split('#')[0].split('?')[0].replace(/manage\.html$/, '');
-    return base + '?id=' + encodeURIComponent(id);
+    return id ? base + '?id=' + encodeURIComponent(id) : base;   // 번호가 없으면 지금 돌고 있는 설문
   }
 
   function copyLink(id, btn) {
@@ -269,15 +280,55 @@
     }
   }
 
+  // 파일에 들어 있는 설문(지금 돌고 있는 은퇴자 설문). 이 화면에서 고치거나 지울 수는 없고,
+  // 결과 보기와 "복사해서 새로 만들기" 는 된다.
+  var BUILT_IN = { id: '', title: (window.SURVEY && window.SURVEY.title) || '', builtIn: true };
+
+  function builtInCard() {
+    if (!window.SURVEY || !window.SURVEY.questions.length) return null;
+    var S0 = window.SURVEY;
+    var linkBtn = el('button', { type: 'button', class: 'btn small plain', text: '설문 링크 복사' });
+    linkBtn.addEventListener('click', function () { copyLink('', linkBtn); });
+    return el('section', { class: 'card builtin' }, [
+      el('div', { class: 'q-head' }, [
+        el('h2', { text: S0.title }),
+        el('span', { class: 'tag open', text: '지금 돌고 있는 설문' })
+      ]),
+      el('p', { class: 'meta', text: '문항 ' + S0.questions.length + '개 · 미리 만든 목소리로 읽어 줍니다' }),
+      el('div', { class: 'btn-row' }, [
+        el('button', { type: 'button', class: 'btn small primary', text: '결과 보기', onclick: function () { openResults(BUILT_IN); } }),
+        linkBtn,
+        el('a', { class: 'btn small plain', href: surveyLink(''), target: '_blank', rel: 'noopener', text: '미리보기' }),
+        el('button', { type: 'button', class: 'btn small plain', text: '복사해서 새로 만들기', onclick: copyBuiltIn })
+      ]),
+      el('p', { class: 'hint', text: '이 설문은 파일로 들어 있어서 여기서 고치거나 지울 수 없습니다. 문항을 바꾸시려면 "복사해서 새로 만들기" 를 쓰세요.' })
+    ]);
+  }
+
+  function copyBuiltIn() {
+    var S0 = window.SURVEY;
+    state.draft = toDraft({
+      title: S0.title + ' (복사본)',
+      intro: S0.intro,
+      thanks: S0.thanks,
+      questions: JSON.parse(JSON.stringify(S0.questions)).map(function (q) { delete q.id; return q; })
+    });
+    state.editingId = '';
+    state.view = 'edit';
+    render();
+  }
+
   // ---------- 설문 목록 화면
   function renderList() {
     var nodes = [];
-    nodes.push(el('div', { class: 'row' }, [
+    nodes.push(el('div', { class: 'btn-row' }, [
       el('button', { type: 'button', class: 'btn primary', text: '새 설문 만들기', onclick: function () { startNew(); } }),
       el('button', { type: 'button', class: 'btn plain', text: '새로 불러오기', onclick: loadList })
     ]));
+    var builtIn = builtInCard();
+    if (builtIn) nodes.push(builtIn);
     if (!state.surveys.length) {
-      nodes.push(el('p', { class: 'hint', text: '아직 만든 설문이 없습니다. "새 설문 만들기" 를 눌러 시작하세요.' }));
+      nodes.push(el('p', { class: 'hint', text: '아직 직접 만든 설문이 없습니다. "새 설문 만들기" 를 눌러 시작하세요.' }));
     }
     state.surveys.forEach(function (s) {
       var linkBtn = el('button', { type: 'button', class: 'btn small plain', text: '설문 링크 복사' });
@@ -288,7 +339,7 @@
           el('span', { class: 'tag ' + (s.status === '열림' ? 'open' : 'closed'), text: s.status })
         ]),
         el('p', { class: 'meta', text: '문항 ' + s.questions + '개 · 응답 ' + s.responses + '명 · 고친 날짜 ' + (s.updated || '-') }),
-        el('div', { class: 'row' }, [
+        el('div', { class: 'btn-row' }, [
           el('button', { type: 'button', class: 'btn small primary', text: '결과 보기', onclick: function () { openResults(s); } }),
           linkBtn,
           el('a', { class: 'btn small plain', href: surveyLink(s.id), target: '_blank', rel: 'noopener', text: '미리보기' }),
@@ -313,6 +364,7 @@
   function toDraft(def) {
     return {
       id: def && def.id ? def.id : '',
+      voice: !def || def.voice !== false,
       title: def ? def.title || '' : '',
       intro: def && def.intro ? def.intro.join('\n') : '',
       thanks: def ? def.thanks || '' : '',
@@ -339,6 +391,7 @@
   function fromDraft(d) {
     return {
       id: d.id || undefined,
+      voice: d.voice !== false,
       title: d.title,
       intro: d.intro.split('\n').map(function (t) { return t.trim(); }).filter(Boolean),
       thanks: d.thanks,
@@ -398,7 +451,7 @@
   function renderEdit() {
     var d = state.draft;
     var nodes = [];
-    nodes.push(el('div', { class: 'row' }, [
+    nodes.push(el('div', { class: 'btn-row' }, [
       el('button', { type: 'button', class: 'btn plain', text: '← 목록으로', onclick: leaveEdit }),
       el('span', { class: 'hint', text: d.id ? '고치는 중' : '새 설문' })
     ]));
@@ -414,20 +467,61 @@
     nodes.push(field('첫 화면 안내문', d.intro, function (v) { d.intro = v; }, { multiline: true, rows: '5', hint: '한 줄을 비우지 말고, 문단마다 줄을 바꿔 적으세요.' }));
     nodes.push(field('마지막 감사 문구', d.thanks, function (v) { d.thanks = v; }, { hint: '비워 두면 "설문에 참여해 주셔서 감사합니다." 가 쓰입니다.' }));
 
+    var voiceBox = el('input', { type: 'checkbox', id: 'voice-on' });
+    voiceBox.checked = d.voice !== false;
+    voiceBox.addEventListener('change', function () { d.dirty = true; d.voice = voiceBox.checked; });
+    nodes.push(el('div', { class: 'check-row' }, [
+      voiceBox,
+      el('label', { for: 'voice-on' }, [
+        '읽어주기 버튼 보이기',
+        el('p', { class: 'hint', text: '켜면 설문 화면에 "읽어주기" 버튼이 생겨서, 답하는 분이 문항을 소리로 들을 수 있습니다. 폰이나 컴퓨터에 들어 있는 목소리로 읽습니다.' })
+      ])
+    ]));
+
     nodes.push(el('h2', { text: '문항', style: 'margin-top:1.2rem' }));
     d.questions.forEach(function (q, i) { nodes.push(questionCard(q, i)); });
 
-    nodes.push(el('div', { class: 'row' }, [
+    nodes.push(el('div', { class: 'btn-row' }, [
       el('button', { type: 'button', class: 'btn plain', text: '문항 추가', onclick: function () { d.questions.push(blankQuestion()); render(); } })
     ]));
 
+    nodes.push(previewPanel());
+
     var saveBtn = el('button', { type: 'button', class: 'btn primary', text: '저장하기', onclick: function () { save(saveBtn, false); } });
     var previewBtn = el('button', { type: 'button', class: 'btn plain', text: '저장하고 미리보기', onclick: function () { save(previewBtn, true); } });
-    nodes.push(el('div', { class: 'row end', style: 'margin-top:1.2rem' }, [
+    nodes.push(el('div', { class: 'btn-row end', style: 'margin-top:1.2rem' }, [
       el('button', { type: 'button', class: 'btn plain', text: '취소', onclick: leaveEdit }),
       previewBtn, saveBtn
     ]));
     return nodes;
+  }
+
+  // 미리보기: 지금 편집 중인 설문을 그대로 설문 화면(index.html)에 띄운다.
+  // 같은 화면 코드를 쓰기 때문에 "미리보기와 실제가 다른" 일이 없다. 답은 저장되지 않는다.
+  var previewOpen = false;
+  function previewSrc() {
+    try { sessionStorage.setItem('retire-survey-preview', JSON.stringify(fromDraft(state.draft))); } catch (e) { /* 무시 */ }
+    return 'index.html?preview=1&t=' + Date.now();
+  }
+
+  function previewPanel() {
+    var head = el('div', { class: 'preview-head' }, [
+      el('button', {
+        type: 'button', class: 'btn plain', text: previewOpen ? '미리보기 닫기' : '설문 화면 미리보기',
+        onclick: function () { previewOpen = !previewOpen; render(); }
+      }),
+      previewOpen ? el('button', {
+        type: 'button', class: 'btn plain', text: '미리보기 새로 고치기',
+        onclick: function () {
+          var frame = document.getElementById('preview-frame');
+          if (frame) frame.src = previewSrc();
+        }
+      }) : null,
+      el('span', { class: 'hint', text: previewOpen ? '답하는 분에게 이렇게 보입니다. 여기서 낸 답은 저장되지 않습니다.' : '저장하지 않아도 지금 모습 그대로 볼 수 있습니다.' })
+    ]);
+    var nodes = [head];
+    if (previewOpen) nodes.push(el('iframe', { id: 'preview-frame', src: previewSrc(), title: '설문 화면 미리보기' }));
+    return el('div', { class: 'preview' }, nodes);
   }
 
   function questionCard(q, i) {
@@ -452,7 +546,7 @@
     var body = [
       el('div', { class: 'q-head' }, [
         el('span', { class: 'q-no', text: (i + 1) + '번 문항' }),
-        el('div', { class: 'row' }, [
+        el('div', { class: 'btn-row' }, [
           el('button', { type: 'button', class: 'btn small plain', 'aria-label': (i + 1) + '번 문항 위로', text: '▲', onclick: function () { move(-1); } }),
           el('button', { type: 'button', class: 'btn small plain', 'aria-label': (i + 1) + '번 문항 아래로', text: '▼', onclick: function () { move(1); } }),
           el('button', {
@@ -500,7 +594,7 @@
           })
         ]));
       });
-      body.push(el('div', { class: 'row' }, [
+      body.push(el('div', { class: 'btn-row' }, [
         el('button', { type: 'button', class: 'btn small plain', text: '선택지 추가', onclick: function () { q.options.push(''); render(); } })
       ]));
       if (q.type === 'many') {
@@ -592,10 +686,14 @@
     app.appendChild(el('p', { text: '결과를 불러오는 중입니다…' }));
     state.view = 'results';
     resultsFor = s;
-    api('survey=' + encodeURIComponent(s.id))
+    // 지금 돌고 있는 설문은 문항이 파일에 있고, 응답은 옛 주소에 쌓인다
+    var load = s.builtIn
+      ? Promise.resolve({ ok: true, survey: null })
+      : api('survey=' + encodeURIComponent(s.id));
+    load
       .then(function (d) {
         if (!d || d.ok !== true) throw new Error('bad');
-        var survey = window.SURVEY_MAKE(d.survey);
+        var survey = s.builtIn ? window.SURVEY : window.SURVEY_MAKE(d.survey);
         app.textContent = '';
         view = window.SurveyResults({
           mount: app,
@@ -604,13 +702,16 @@
           onRefresh: function () { loadResults(); },
           fileName: '설문결과_' + (s.title || '설문'),
           header: function () {
-            return el('div', { class: 'row', style: 'margin-bottom:8px' }, [
+            return el('div', { class: 'btn-row', style: 'margin-bottom:8px' }, [
               el('button', { type: 'button', class: 'btn plain', text: '← 목록으로', onclick: function () { view = null; resultsFor = null; loadList(); } }),
               el('h2', { text: s.title })
             ]);
           },
+          refreshHint: '1분마다 저절로 새로 불러옵니다.',
           onDelete: function (r) {
-            return api('', { action: 'delete', key: state.key, surveyId: s.id, id: r.id });
+            return s.builtIn
+              ? api('', { action: 'delete', key: state.key, id: r.id }, ENDPOINT_BUILTIN)
+              : api('', { action: 'delete', key: state.key, surveyId: s.id, id: r.id });
           }
         });
         loadResults();
@@ -623,7 +724,10 @@
 
   function loadResults() {
     if (!view || !resultsFor) return;
-    api('key=' + encodeURIComponent(state.key) + '&results=' + encodeURIComponent(resultsFor.id))
+    var call = resultsFor.builtIn
+      ? api('key=' + encodeURIComponent(state.key), null, ENDPOINT_BUILTIN)
+      : api('key=' + encodeURIComponent(state.key) + '&results=' + encodeURIComponent(resultsFor.id));
+    call
       .then(function (d) {
         if (!d || d.ok !== true) throw new Error('bad');
         view.setData(d.responses, d.broken, new Date());
@@ -644,6 +748,11 @@
     var nodes = state.view === 'edit' && state.draft ? renderEdit() : renderList();
     nodes.forEach(function (n) { if (n) app.appendChild(n); });
   }
+
+  // 결과 화면을 열어 두면 1분마다 저절로 새로 불러온다 (화면을 안 보고 있을 때는 쉰다)
+  setInterval(function () {
+    if (!document.hidden && state.view === 'results' && view && view.hasData()) loadResults();
+  }, REFRESH_MS);
 
   window.addEventListener('hashchange', loadList);
   loadList();

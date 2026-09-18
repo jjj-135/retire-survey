@@ -8,4 +8,4 @@ window.SURVEY_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwi4kaRY9-TEJf
 // 같은 스크립트를 "새 배포" 로 한 번 더 배포해서 받은 주소를 넣는다.
 // 이렇게 두면 새 기능을 고치는 동안에도 지금 설문은 옛 배포 그대로 돌아간다.
 // 비워 두면 위 주소를 같이 쓴다.
-window.SURVEY_ENDPOINT_NEW = 'https://script.google.com/macros/s/AKfycbxCFFYnzExiSOazeexDeqjCJNtf67PySGESFeegGdZtAzKhx9IVTzfqm-99amK5s52L/exec';
+window.SURVEY_ENDPOINT_NEW = 'https://script.google.com/macros/s/AKfycbzvGxrgHnTVD5atBJCRm2gDWB_UEU176sMEc__g5xq2oYm8_i_58H3rHulSzwWNqnnL/exec';

@@ -96,12 +96,7 @@
     .tool.wide { grid-column: auto; }
     .tool { font-size: var(--tool-size, 26px); }
   }
-  /* 3단계부터는 버튼을 한 줄에 하나씩 두고, 버튼 글자도 본문 따라 크게 (폭을 넘지 않는 만큼) */
-  html[data-size="2"] .toolbar, html[data-scale="big"] .toolbar, html[data-scale="huge"] .toolbar { grid-template-columns: 1fr; }
-  html[data-size="2"] .tool, html[data-scale="big"] .tool, html[data-scale="huge"] .tool {
-    grid-column: auto; min-height: 0; padding: 6px;
-    font-size: min(var(--tool-size, 26px), calc((100vw - 38px) / 5.7));
-  }
+  /* 보기 설정 버튼은 글자 크기 단계와 상관없이 늘 같은 크기다 (본문만 커진다) */
 
   main { max-width: 40rem; margin: 0 auto; padding: 16px 16px 56px; }
 
@@ -281,6 +276,10 @@
     var m = String(location.search).match(/[?&]id=([A-Za-z0-9_-]{1,40})/);
     return m ? m[1] : '';
   })();
+  // ?preview=1 : 설문 만들기 화면의 미리보기. 아직 저장 안 한 설문을 그대로 보여 준다.
+  // 답은 보내지 않고, 적던 답도 저장하지 않는다.
+  var PREVIEW = /[?&]preview=1/.test(String(location.search));
+  var PREVIEW_KEY = 'retire-survey-preview';
 
   var S = null;
   var Q = [];
@@ -321,6 +320,7 @@
     });
   }
   function saveDraft() {
+    if (PREVIEW) return;   // 미리보기는 아무것도 저장하지 않는다
     if (state.step >= 0 && state.step <= REVIEW && hasAnswers(state.answers)) {
       save(DRAFT_KEY, { answers: state.answers, step: state.step });
     }
@@ -367,8 +367,8 @@
   }
 
   // ---------- 글자 크기 / 검은 바탕
-  var SIZES = [20, 25, 31, 38, 47, 58, 72];        // 글자 크기 7단계 (px)
-  var TOOL_SIZES = [26, 26, 31, 38, 46, 54, 60];   // 맨 위 버튼 글자 (px). 폰 폭이 좁으면 CSS 가 더 줄인다
+  var SIZES = [20, 25, 31, 38, 47, 58, 72];   // 글자 크기 7단계 (px). 본문만 커진다
+  var TOOL_SIZE = 26;                          // 맨 위 버튼 글자 (px). 단계와 상관없이 고정
   var MAX_SIZE = SIZES.length - 1;
   var view = load(VIEW_KEY);
   if (!view || typeof view.size !== 'number') {
@@ -380,7 +380,7 @@
 
   function applyView() {
     root.style.fontSize = SIZES[view.size] + 'px';
-    root.style.setProperty('--tool-size', TOOL_SIZES[view.size] + 'px');
+    root.style.setProperty('--tool-size', TOOL_SIZE + 'px');
     root.setAttribute('data-size', String(view.size));
     root.setAttribute('data-scale', view.size >= 5 ? 'huge' : view.size >= 3 ? 'big' : 'normal');
     root.setAttribute('data-contrast', view.contrast ? 'high' : 'normal');
@@ -771,6 +771,10 @@
 
     function send() {
       if (state.sending) return;
+      if (PREVIEW) {
+        say('미리보기라서 답은 보내지 않습니다. 실제 설문에서는 여기서 보내집니다.');
+        return;
+      }
       var missing = Q.filter(function (q) {
         var a = state.answers[q.id];
         return q.type !== 'text' && !(a && a.sel && a.sel.length);
@@ -880,6 +884,8 @@
 
   function boot(def) {
     S = def ? window.SURVEY_MAKE(def) : window.SURVEY;
+    // 이 설문에서 읽어주기를 끄면 읽어주기 버튼을 아예 안 보여 준다
+    if (S.voice === false) canSpeak = false;
     Q = S.questions;
     N = Q.length;
     REVIEW = N;
@@ -921,9 +927,24 @@
       });
   }
 
-  if (!ENDPOINT) document.getElementById('config-warning').hidden = false;
+  // 미리보기: 설문 만들기 화면이 넣어 둔 설문을 꺼내서 그대로 돈다
+  function bootPreview() {
+    if (canSpeak && Speech.useClips) Speech.useClips(false);
+    var raw = null;
+    try { raw = sessionStorage.getItem(PREVIEW_KEY); } catch (e) { /* 무시 */ }
+    var def = raw ? JSON.parse(raw) : null;
+    if (!def || !def.questions || !def.questions.length) {
+      message('미리볼 설문이 없습니다.', ['설문 만들기 화면에서 "미리보기" 를 눌러 주세요.']);
+      return;
+    }
+    boot(def);
+  }
+
+  if (!ENDPOINT && !PREVIEW) document.getElementById('config-warning').hidden = false;
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
-  if (SURVEY_ID) loadFromServer(); else boot(null);
+  if (PREVIEW) bootPreview();
+  else if (SURVEY_ID) loadFromServer();
+  else boot(null);
 })();
 </script>
 </body>
