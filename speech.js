@@ -268,6 +268,17 @@
     useAudio = !!on;
   }
 
+  // 이 설문에서 읽는 줄 중 미리 만든 음성 파일이 있는 비율 (0~1).
+  // 문항을 고치면 그 줄만 파일이 없어진다. 너무 적으면 목소리가 뒤섞이므로 부르는 쪽에서 아예 끈다.
+  function clipCoverage(S) {
+    if (!AUDIO || !audioSupported || !S) return 0;
+    var lines = catalog(S);
+    if (!lines.length) return 0;
+    var have = 0;
+    lines.forEach(function (line) { if (AUDIO.clips[line]) have++; });
+    return have / lines.length;
+  }
+
   function setVoice(id) {
     if (!AUDIO || !AUDIO.voices[id]) return false;
     voice = id;
@@ -386,6 +397,7 @@
     getVoice: getVoice,
     setVoice: setVoice,
     useClips: useClips,
+    clipCoverage: clipCoverage,
     speak: speak,
     stop: stop
   };

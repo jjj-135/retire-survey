@@ -286,8 +286,10 @@
   var N = 0;
   var REVIEW = 0;
   var DONE = 1;
-  // 새 설문은 새 주소로, 지금 설문은 옛 주소로 (config.js 참고)
-  var ENDPOINT = String((SURVEY_ID && window.SURVEY_ENDPOINT_NEW) || window.SURVEY_ENDPOINT || '').trim();
+  // 새 기능이 있는 주소를 쓰고, 없으면 옛 주소 (config.js 참고)
+  var ENDPOINT = String(window.SURVEY_ENDPOINT_NEW || window.SURVEY_ENDPOINT || '').trim();
+  var DEFAULT_ID = 'default';        // 지금 돌고 있는 설문의 번호 (관리자 화면에서 고칠 수 있다)
+  var serverDefault = false;         // 그 설문을 서버에서 받아 왔나 (파일에 든 것으로 돌면 false)
   var DRAFT_KEY = 'retire-survey-draft-v1' + (SURVEY_ID ? ':' + SURVEY_ID : '');
   var VIEW_KEY = 'retire-survey-view-v1';
 
@@ -796,7 +798,11 @@
       say('보내는 중입니다. 잠시만 기다려 주세요.');
 
       var answers = cleanAnswers(state.answers);
-      var payload = JSON.stringify({ surveyId: SURVEY_ID, answers: answers, columns: S.columns(answers) });
+      var payload = JSON.stringify({
+        surveyId: SURVEY_ID || (serverDefault ? DEFAULT_ID : ''),
+        answers: answers,
+        columns: S.columns(answers)
+      });
       var ctrl = typeof window.AbortController === 'function' ? new window.AbortController() : null;
       var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, 30000);
 
@@ -886,6 +892,9 @@
     S = def ? window.SURVEY_MAKE(def) : window.SURVEY;
     // 이 설문에서 읽어주기를 끄면 읽어주기 버튼을 아예 안 보여 준다
     if (S.voice === false) canSpeak = false;
+    // 미리 만든 음성 파일이 이 설문을 거의 다 덮을 때만 쓴다.
+    // 조금만 맞으면 목소리가 뒤섞이므로, 그럴 바엔 전부 기기 목소리로 통일한다.
+    if (canSpeak && Speech.useClips) Speech.useClips(Speech.clipCoverage(S) >= 0.8);
     Q = S.questions;
     N = Q.length;
     REVIEW = N;
@@ -908,6 +917,7 @@
     fetch(ENDPOINT + (ENDPOINT.indexOf('?') >= 0 ? '&' : '?') + 'survey=' + encodeURIComponent(SURVEY_ID), {
       signal: ctrl ? ctrl.signal : undefined, cache: 'no-store'
     })
+
       .then(function (res) { return res.json(); })
       .then(function (data) {
         clearTimeout(timer);
@@ -940,11 +950,40 @@
     boot(def);
   }
 
+  // 지금 돌고 있는 설문: 관리자 화면에서 고친 내용이 서버에 있으면 그것으로, 없거나 못 받으면 파일에 든 것으로 돈다.
+  // 미리 만든 음성 파일은 그대로 쓴다 (고친 줄만 기기 목소리로 읽힌다).
+  function loadDefault() {
+    if (!ENDPOINT) { boot(null); return; }
+    var ctrl = typeof window.AbortController === 'function' ? new window.AbortController() : null;
+    var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, 8000);
+    fetch(ENDPOINT + (ENDPOINT.indexOf('?') >= 0 ? '&' : '?') + 'survey=' + DEFAULT_ID, {
+      signal: ctrl ? ctrl.signal : undefined, cache: 'no-store'
+    })
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        clearTimeout(timer);
+        if (data && data.ok === true && data.survey && data.survey.questions && data.survey.questions.length) {
+          if (data.open === false) {
+            message(data.survey.title || '설문', ['이 설문은 마감되었습니다. 참여해 주셔서 감사합니다.']);
+            return;
+          }
+          serverDefault = true;
+          boot(data.survey);
+          return;
+        }
+        boot(null);
+      })
+      .catch(function () {
+        clearTimeout(timer);
+        boot(null);
+      });
+  }
+
   if (!ENDPOINT && !PREVIEW) document.getElementById('config-warning').hidden = false;
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
   if (PREVIEW) bootPreview();
   else if (SURVEY_ID) loadFromServer();
-  else boot(null);
+  else loadDefault();
 })();
 </script>
 </body>

@@ -282,6 +282,7 @@
 
   // 파일에 들어 있는 설문(지금 돌고 있는 은퇴자 설문). 이 화면에서 고치거나 지울 수는 없고,
   // 결과 보기와 "복사해서 새로 만들기" 는 된다.
+  var DEFAULT_ID = 'default';   // 지금 돌고 있는 설문의 번호 (고치면 이 번호로 서버에 저장된다)
   var BUILT_IN = { id: '', title: (window.SURVEY && window.SURVEY.title) || '', builtIn: true };
 
   function builtInCard() {
@@ -299,10 +300,34 @@
         el('button', { type: 'button', class: 'btn small primary', text: '결과 보기', onclick: function () { openResults(BUILT_IN); } }),
         linkBtn,
         el('a', { class: 'btn small plain', href: surveyLink(''), target: '_blank', rel: 'noopener', text: '미리보기' }),
+        el('button', { type: 'button', class: 'btn small plain', text: '고치기', onclick: editDefault }),
         el('button', { type: 'button', class: 'btn small plain', text: '복사해서 새로 만들기', onclick: copyBuiltIn })
       ]),
-      el('p', { class: 'hint', text: '이 설문은 파일로 들어 있어서 여기서 고치거나 지울 수 없습니다. 문항을 바꾸시려면 "복사해서 새로 만들기" 를 쓰세요.' })
+      el('p', { class: 'hint', text: '이 설문은 지우거나 마감할 수 없습니다. 고치면 이 링크로 들어오는 분들에게 바로 바뀐 내용이 보입니다.' })
     ]);
+  }
+
+  // 지금 돌고 있는 설문 고치기: 서버에 고쳐 둔 것이 있으면 그것을, 없으면 파일에 든 것을 불러온다
+  function editDefault() {
+    app.textContent = '';
+    app.appendChild(el('p', { text: '설문을 불러오는 중입니다…' }));
+    api('survey=' + DEFAULT_ID)
+      .then(function (d) {
+        var def = d && d.ok === true && d.survey && d.survey.questions && d.survey.questions.length
+          ? d.survey
+          : { title: window.SURVEY.title, intro: window.SURVEY.intro, thanks: window.SURVEY.thanks, questions: JSON.parse(JSON.stringify(window.SURVEY.questions)) };
+        def.id = DEFAULT_ID;
+        state.draft = toDraft(def);
+        state.draft.id = DEFAULT_ID;
+        state.draft.isDefault = true;
+        state.editingId = DEFAULT_ID;
+        state.view = 'edit';
+        render();
+      })
+      .catch(function () {
+        flash('설문을 불러오지 못했습니다. 다시 시도해 주세요.', false);
+        loadList();
+      });
   }
 
   function copyBuiltIn() {
@@ -456,7 +481,12 @@
       el('span', { class: 'hint', text: d.id ? '고치는 중' : '새 설문' })
     ]));
 
-    if (d.id && d.responses > 0) {
+    if (d.isDefault) {
+      nodes.push(el('p', { class: 'notice' }, [
+        '이 설문은 지금 답을 받고 있는 설문입니다. 문항이나 선택지를 바꾸면 먼저 받은 답과 새 답이 섞여서 결과를 읽기 어려워집니다. ' +
+        '또 바꾼 문항은 미리 만든 목소리가 없어서, 그 줄만 폰·컴퓨터에 들어 있는 목소리로 읽어 줍니다.'
+      ]));
+    } else if (d.id && d.responses > 0) {
       nodes.push(el('p', { class: 'notice' }, [
         '이 설문은 이미 ' + d.responses + '명이 답했습니다. 문항이나 선택지를 바꾸면 먼저 받은 답과 새 답이 섞여서 결과를 읽기 어려워집니다. ' +
         '내용을 바꾸실 거면 목록에서 "복사해서 새로 만들기" 를 쓰시는 편이 안전합니다.'
