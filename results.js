@@ -236,8 +236,23 @@ window.SurveyResults = function (opts) {
     return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
   }
 
+  // 카카오톡·네이버·밴드 같은 앱 안에서 링크를 열면, 그 앱 속 작은 브라우저가
+  // 이렇게 만든 파일 받기를 막는다 (눌러도 아무 일도 안 일어난다).
+  // 카카오톡은 바깥 인터넷 앱으로 다시 여는 주소가 있어서 그리로 넘기고,
+  // 다른 앱은 여는 법을 안내한다. 눌렀을 때 읽는다 (검사에서 바꿔 끼울 수 있게).
+  function inKakao() { return /KAKAOTALK/i.test(navigator.userAgent || ''); }
+  function inOtherApp() {
+    return /NAVER\(inapp|DaumApps|BAND\/|Line\/|Instagram|FBAN|FBAV|everytimeApp|; wv\)/i.test(navigator.userAgent || '');
+  }
+
   function downloadCsv() {
     if (!data) return;
+    if (inKakao()) {
+      flash = { ok: false, text: '카카오톡 안에서는 파일을 받을 수 없어서, 이 화면을 인터넷 앱(크롬·삼성 인터넷·사파리)으로 다시 엽니다. 열린 화면에서 "엑셀 파일(CSV)로 받기"를 한 번 더 눌러 주세요.' };
+      draw();
+      location.href = 'kakaotalk://web/openExternal?url=' + encodeURIComponent(location.href);
+      return;
+    }
     var rows = [['제출 시각'].concat(S.columns({}).map(function (c) { return c[0]; }))];
     data.responses.forEach(function (r) {
       rows.push([S.str(r && r.at)].concat(S.columns(r && r.answers).map(function (c) { return c[1]; })));
@@ -246,11 +261,17 @@ window.SurveyResults = function (opts) {
     var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
     var link = document.createElement('a');
     var now = new Date();
+    var name = (opts.fileName || '설문결과') + '_' + now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate()) + '.csv';
     link.href = URL.createObjectURL(blob);
-    link.download = (opts.fileName || '설문결과') + '_' + now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate()) + '.csv';
+    link.download = name;
     document.body.appendChild(link);
     link.click();
-    setTimeout(function () { URL.revokeObjectURL(link.href); link.remove(); }, 1000);
+    // 아이폰은 "받을까요?" 를 묻는 동안에도 파일 주소가 살아 있어야 한다. 1초면 그 사이에 사라진다
+    setTimeout(function () { URL.revokeObjectURL(link.href); link.remove(); }, 60000);
+    flash = inOtherApp()
+      ? { ok: false, text: '지금 다른 앱 안에서 이 화면을 여셔서 파일이 안 받아질 수 있습니다. 안 받아지면 화면 위나 아래의 메뉴(⋮ 또는 …)에서 "다른 브라우저로 열기"를 누른 뒤 다시 눌러 주세요.' }
+      : { ok: true, text: '"' + name + '" 파일을 받았습니다. 어디 있는지 모르겠으면 휴대폰은 "내 파일 → 다운로드", 아이폰은 "파일 → 다운로드", 컴퓨터는 "다운로드" 폴더를 봐 주세요.' };
+    draw();
   }
 
   function draw() {
